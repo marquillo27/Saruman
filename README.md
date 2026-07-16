@@ -35,6 +35,19 @@ Fight your way through **three biome-distinct worlds** — 12 main levels plus o
 | Shield / parry | L or Q |
 | Pause | Esc |
 
+## Getting the game
+
+Two ways to download the project:
+
+- **Without git:** click the green **Code** button at the top of this page → **Download ZIP**, then unpack it anywhere.
+- **With git:**
+
+  ```
+  git clone https://github.com/marquillo27/Saruman.git
+  ```
+
+There is no pre-built executable download yet — the game is run from source (below) or built into a Windows `.exe` locally (see *Building*).
+
 ## Running from source
 
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/):
@@ -43,6 +56,8 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/):
 uv sync
 uv run saruman
 ```
+
+The first command installs all dependencies into a local `.venv`; the second starts the game. No system-wide installation, nothing outside the project folder is touched.
 
 ## Tests
 
@@ -58,14 +73,29 @@ uv run pytest
 
 Produces a standalone build in `dist/ProjectSaruman` via PyInstaller (see `ProjectSaruman.spec`).
 
-## Project layout
+## What's in the code
 
 ```
-saruman/          game code (states, entities, world, physics, UI, save)
-assets/           generated sprites, tilemaps (.tmx), audio, fonts
-tools/            generators for sprites, SFX, music and level maps
-tests/            pytest suite
+saruman/          game code
+├── core/         engine backbone: game loop, state machine, input mapping,
+│                 asset loading, audio
+├── states/       screens the game moves between: menu, play, pause,
+│                 world intro cards, game over, credits, settings, highscores
+├── entities/     player, 11 enemy types (incl. three bosses), items,
+│                 projectiles, interactive objects, triggers
+├── world/        level loading (.tmx), tilemap, camera, parallax layers,
+│                 weather, particles
+├── physics/      collision detection and resolution
+├── ui/           HUD (hearts, score) and visual theme
+└── save/         settings and highscores persisted to disk
+
+assets/           sprites, tilemaps (.tmx), audio, fonts — all generated
+tools/            the generators that produce every asset: sprite sheets,
+                  sound effects, music tracks and level maps (tmx_builder.py)
+tests/            pytest suite (~500 tests) covering gameplay logic
 ```
+
+A good place to start reading is `saruman/main.py` (entry point) and `saruman/states/play.py` — the heart of the game where levels, the player and enemies come together. Level progression is a simple dict chain (`_NEXT_LEVEL`) in the same file.
 
 ---
 
