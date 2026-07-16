@@ -11,6 +11,7 @@ uv add --dev pyinstaller | Out-Null
 Write-Host "==> Building ProjectSaruman..."
 uv run pyinstaller `
     --onedir `
+    --noconfirm `
     --name "ProjectSaruman" `
     --add-data "assets;assets" `
     --hidden-import pytmx `
