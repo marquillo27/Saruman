@@ -1,0 +1,14 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Claude Code local (machine-specific) files
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Virtual environments
+.venv

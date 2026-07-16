@@ -1,0 +1,23 @@
+[project]
+name = "project-saruman"
+version = "0.1.0"
+description = "A pixel-art fantasy platformer inspired by LOTR/GoT"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26",
+    "pillow>=10",
+    "platformdirs>=4.9.6",
+    "pygame-ce>=2.5.7",
+    "pyscroll>=2.31",
+    "pytmx>=3.32",
+]
+
+[project.scripts]
+saruman = "saruman.main:main"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.20.0",
+    "pytest>=9.0.3",
+]

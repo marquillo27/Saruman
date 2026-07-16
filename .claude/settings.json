@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv *)",
+      "Bash(mkdir *)",
+      "Bash(export PATH=*)",
+      "Bash(find * -not -path *)",
+      "Bash(powershell.exe *)",
+      "Bash(timeout * uv *)",
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Write(*)",
+      "Edit(*)",
+      "Read(*)"
+    ]
+  }
+}
