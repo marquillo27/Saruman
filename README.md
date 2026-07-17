@@ -37,16 +37,16 @@ Fight your way through **three biome-distinct worlds** — 12 main levels plus o
 
 ## Getting the game
 
-Two ways to download the project:
+**Just want to play? (Windows)** Download `ProjectSaruman-windows-portable.zip` from the [latest release](https://github.com/marquillo27/Saruman/releases/latest), unpack it anywhere and run `ProjectSaruman.exe`. Fully portable — no installation, no Python needed. (Windows SmartScreen may warn about an unknown publisher: choose *More info → Run anyway*.)
 
-- **Without git:** click the green **Code** button at the top of this page → **Download ZIP**, then unpack it anywhere.
+**Want the source code?**
+
+- **Without git:** click the green **Code** button at the top of this page → **Download ZIP**.
 - **With git:**
 
   ```
   git clone https://github.com/marquillo27/Saruman.git
   ```
-
-There is no pre-built executable download yet — the game is run from source (below) or built into a Windows `.exe` locally (see *Building*).
 
 ## Running from source
 
