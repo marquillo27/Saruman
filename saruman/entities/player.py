@@ -8,6 +8,8 @@ from saruman.config import (
     AIR_ACCEL, AIR_DECEL, AIR_TURN, APEX_GRAVITY_MULT, APEX_HANG_SPEED,
     COYOTE_FRAMES, GRAVITY, GRAVITY_FALL, JUMP_BUFFER_FRAMES, JUMP_CUT_GRAVITY_MULT,
     JUMP_VEL, MOVE_SPEED, PLAYER_MAX_FALL, RUN_ACCEL, RUN_DECEL, RUN_TURN,
+    TILE_SIZE, WALL_COYOTE, WALL_JUMP_LOCK, WALL_JUMP_PUSH, WALL_JUMP_VEL_Y,
+    WALL_SLIDE_SPEED,
     COL_GOLD, COL_DARK_GRAY, HIT_IFRAMES, SHOOT_COOLDOWN, SWING_COOLDOWN, SHIELD_CD,
 )
 from saruman.core.assets import get_sprite, get_strip_frame
@@ -31,6 +33,11 @@ class Player(Entity):
         self._jump_buffer    = 0
         self._jumps_left     = 2
         self._jump_cuttable  = True   # False after a spring: its launch is fixed
+        self._wall_dir       = 0      # -1 / 1 while touching a wall in the air
+        self._wall_coyote    = 0      # frames left to wall-jump after leaving it
+        self._wall_jump_dir  = 0      # side of the wall last touched
+        self._wall_lock      = 0      # frames of locked air steering
+        self._wall_sliding   = False
         self._hit_timer      = 0
         self._shoot_cooldown = 0
         self._swing_cooldown = 0
@@ -138,6 +145,7 @@ class Player(Entity):
         if self._swing_active   > 0: self._swing_active   -= 1
         if self._swing_anim     > 0: self._swing_anim     -= 1
         if self._shield_cd      > 0: self._shield_cd      -= 1
+        if self._wall_lock      > 0: self._wall_lock      -= 1
         self._shielding = inp.held(Action.SHIELD) and self._shield_cd <= 0
 
         # Horizontal movement — accelerate toward the target speed (halved while
@@ -150,10 +158,18 @@ class Player(Entity):
         if direction:
             self.facing = direction
         top_speed = MOVE_SPEED * 0.5 if self._shielding else MOVE_SPEED
-        self._steer(direction * top_speed)
+        if self._wall_lock == 0:
+            self._steer(direction * top_speed)
 
         if not self.on_ground:
             self._apply_jump_gravity(inp.held(Action.JUMP))
+
+        # Wall slide: falling while pressing into a wall caps the fall speed.
+        self._wall_sliding = (
+            self._wall_dir != 0 and direction == self._wall_dir and self.vel_y > 0
+        )
+        if self._wall_sliding:
+            self.vel_y = min(self.vel_y, WALL_SLIDE_SPEED)
 
         # Coyote time
         if self.on_ground:
@@ -175,6 +191,8 @@ class Player(Entity):
             self._jumps_left   = 1
             self._jump_cuttable = True
             get_audio().play_sfx("jump.wav")
+        elif inp.pressed(Action.JUMP) and not self.on_ground and self._wall_coyote > 0:
+            self._wall_jump()
         elif inp.pressed(Action.JUMP) and not self.on_ground and self._jumps_left > 0:
             self.vel_y       = JUMP_VEL * 0.85
             self._jumps_left -= 1
@@ -183,6 +201,7 @@ class Player(Entity):
 
         _was_on_ground = self.on_ground
         move_and_collide(self, tilemap)
+        self._update_wall_contact(tilemap)
         if not _was_on_ground and self.on_ground:
             get_audio().play_sfx("land.wav")
             self._land_timer = 5
@@ -193,6 +212,46 @@ class Player(Entity):
             self._anim_tick += 1
         else:
             self._anim_tick = 0
+
+    @property
+    def wall_sliding(self) -> bool:
+        return self._wall_sliding
+
+    def _wall_jump(self) -> None:
+        """Kick off the last-touched wall, refreshing the double jump."""
+        away = -self._wall_jump_dir
+        self.vel_y          = WALL_JUMP_VEL_Y
+        self.vel_x          = away * WALL_JUMP_PUSH
+        self.facing         = away
+        self._wall_lock     = WALL_JUMP_LOCK
+        self._wall_coyote   = 0
+        self._jumps_left    = 1
+        self._jump_buffer   = 0
+        self._jump_cuttable = True
+        get_audio().play_sfx("jump.wav")
+
+    def _update_wall_contact(self, tilemap) -> None:
+        """Record which side (if any) is pressed against a solid tile while
+        airborne. Probes 1 px beside the body, skipping the corners so floor
+        and ceiling tiles don't count as walls."""
+        self._wall_dir = 0
+        if not self.on_ground:
+            r = self.rect
+            for side, px in ((-1, r.left - 1), (1, r.right)):
+                tx = px // TILE_SIZE
+                for py in (r.top + 3, r.centery, r.bottom - 3):
+                    if tilemap.is_solid(tx, py // TILE_SIZE):
+                        self._wall_dir = side
+                        break
+                if self._wall_dir:
+                    break
+        if self._wall_dir:
+            self._wall_coyote   = WALL_COYOTE
+            self._wall_jump_dir = self._wall_dir
+        elif self._wall_coyote > 0:
+            self._wall_coyote -= 1
+        if self.on_ground:
+            self._wall_coyote = 0
 
     def _steer(self, target: float) -> None:
         """Move vel_x toward `target` by the ground/air accel, decel or turn rate."""

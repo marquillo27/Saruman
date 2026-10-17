@@ -158,3 +158,69 @@ def test_spring_launch_not_cut_by_released_jump():
     p.spring_launch(-13.0)
     _step(p, Input())                        # jump not held
     assert p.vel_y == pytest.approx(-13.0 + GRAVITY)
+
+
+# --- Wall slide / wall jump -------------------------------------------------
+
+class _WallMap(_FlatMap):
+    """Floor plus a tall wall column at tile x=10."""
+    WALL_X = 10
+
+    def is_solid(self, tx, ty):
+        return ty == self.FLOOR or (tx == self.WALL_X and ty < self.FLOOR)
+
+
+_WALL = _WallMap()
+
+
+def _against_wall() -> Player:
+    """Airborne player touching the wall's left face, falling."""
+    p = Player(_WallMap.WALL_X * TILE_SIZE - Player.W, 300)
+    p.vel_y = 4.0
+    p.update(_hold(Action.MOVE_RIGHT), _WALL)
+    return p
+
+
+def test_wall_slide_caps_fall_speed():
+    from saruman.config import WALL_SLIDE_SPEED
+    p = _against_wall()
+    for _ in range(20):
+        p.update(_hold(Action.MOVE_RIGHT), _WALL)
+    assert p.wall_sliding
+    assert p.vel_y <= WALL_SLIDE_SPEED
+
+
+def test_no_slide_without_pressing_into_wall():
+    p = _against_wall()
+    for _ in range(20):
+        p.update(Input(), _WALL)
+    assert not p.wall_sliding
+
+
+def test_wall_jump_pushes_away_and_up():
+    p = _against_wall()
+    inp = _hold(Action.MOVE_RIGHT, Action.JUMP)
+    inp._pressed.add(Action.JUMP)
+    p.update(inp, _WALL)
+    assert p.vel_y < 0
+    assert p.vel_x < 0          # away from the wall on the right
+    assert p.facing == -1
+
+
+def test_wall_jump_refreshes_double_jump():
+    p = _against_wall()
+    p._jumps_left = 0
+    inp = _hold(Action.JUMP)
+    inp._pressed.add(Action.JUMP)
+    p.update(inp, _WALL)
+    assert p._jumps_left == 1
+
+
+def test_wall_jump_locks_steering_briefly():
+    p = _against_wall()
+    inp = _hold(Action.MOVE_RIGHT, Action.JUMP)
+    inp._pressed.add(Action.JUMP)
+    p.update(inp, _WALL)
+    inp.clear_frame()
+    p.update(inp, _WALL)        # still holding toward the wall
+    assert p.vel_x < 0

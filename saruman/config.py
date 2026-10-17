@@ -29,6 +29,14 @@ JUMP_CUT_GRAVITY_MULT = 2.5
 APEX_HANG_SPEED = 0.6    # |vel_y| below this counts as the apex
 APEX_GRAVITY_MULT = 0.6
 PLAYER_MAX_FALL = 10.0
+# Wall slide / wall jump: hold toward a wall while falling to slide slowly;
+# jump off it to get pushed away (steering locked briefly so you can't cling
+# straight back) with the double jump refreshed.
+WALL_SLIDE_SPEED = 1.5
+WALL_JUMP_VEL_Y  = -7.8
+WALL_JUMP_PUSH   = 2.8
+WALL_JUMP_LOCK   = 9      # frames of no air steering after a wall jump
+WALL_COYOTE      = 5      # frames a wall jump is still allowed after leaving it
 
 PLAYER_LIVES = 3
 MAX_LIVES = 7    # Hearts stack up to this; starting lives stay PLAYER_LIVES
