@@ -634,7 +634,11 @@ class World:
         for trigger in self._triggers:
             if not isinstance(trigger, LevelEndTrigger):
                 continue
-            r = trigger.rect
+            # Same 16 px beacon for every exit, standing on the zone's floor,
+            # however large the trigger zone itself is.
+            z = trigger.rect
+            r = pygame.Rect(0, 0, 16, min(z.h, 32))
+            r.midbottom = z.midbottom
             sx, sy = self._camera.world_to_screen(r.x, r.y)
             if not (-r.w < sx < INTERNAL_W + r.w):
                 continue

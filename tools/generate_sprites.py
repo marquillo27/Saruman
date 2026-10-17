@@ -1195,20 +1195,9 @@ def main() -> None:
         ("spike",              make_spike),
     ]
 
+    # Hero and enemy strips now come from tools/generate_hero.py and
+    # tools/generate_enemies.py (larger M21 art); don't overwrite them here.
     strips = [
-        ("player_strip",             make_player_strip),
-        ("enemy_goblinkin_strip",    make_goblinkin_strip),
-        ("enemy_wraith_strip",       make_wraith_strip),
-        ("enemy_bosswarg_strip",     make_bosswarg_strip),
-        ("enemy_shieldknight_strip", make_shieldknight_strip),
-        ("enemy_archer_strip",       make_archer_strip),
-        ("enemy_bat_strip",          make_bat_strip),
-        ("enemy_slime_strip",        make_slime_strip),
-        ("enemy_small_slime_strip",  make_small_slime_strip),
-        ("enemy_spitter_strip",      make_spitter_strip),
-        ("enemy_mimic_strip",        make_mimic_strip),
-        ("enemy_goblin_king_strip",  make_goblin_king_strip),
-        ("enemy_night_king_strip",   make_night_king_strip),
         ("item_coin_strip",          make_coin_strip),
         ("item_gem_blue_strip",      lambda: make_gem_strip("blue")),
         ("item_gem_red_strip",       lambda: make_gem_strip("red")),

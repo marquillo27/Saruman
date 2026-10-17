@@ -18,11 +18,26 @@ from saruman.entities.projectile import AcidBlob, EnemyProjectile
 from saruman.physics.collision import move_and_collide
 
 
+_flash_cache: dict[int, pygame.Surface] = {}
+
+
+def _white_silhouette(spr: pygame.Surface) -> pygame.Surface:
+    """White copy of a sprite (same alpha) for the hit flash."""
+    key = id(spr)
+    if key not in _flash_cache:
+        white = spr.copy()
+        white.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_MAX)
+        _flash_cache[key] = white
+    return _flash_cache[key]
+
+
 class Enemy(Entity):
     score_value:    int  = 0
     can_be_stomped: bool = True
     is_boss:        bool = False   # bosses are immune to nuke / fruit transform
     _hit_timer:     int  = 0   # class default kept for `Enemy._hit_timer == 0` test
+    ART_W:          int | None = None   # sprite frame size (art is larger than the hitbox,
+    ART_H:          int | None = None   # drawn feet-aligned and centred over it)
 
     def __init__(self, x: float, y: float, w: int, h: int) -> None:
         super().__init__(x, y, w, h)
@@ -48,6 +63,17 @@ class Enemy(Entity):
         """Blit one strip frame, flipped by facing. Returns False if the sprite is
         missing so the caller can draw its placeholder. `center` aligns oversized
         frames over the hitbox."""
+        if self.ART_W:
+            spr = get_strip_frame(asset, frame, self.ART_W, self.ART_H, flip_x=(self.facing < 0))
+            if spr is None:
+                return False
+            bx = sx + self.w // 2 - self.ART_W // 2
+            by = sy + self.h - self.ART_H
+            surface.blit(spr, (bx, by))
+            if self._hit_timer > 0 and (self._hit_timer // 2) % 2 == 0:
+                surface.blit(_white_silhouette(spr), (bx, by))
+            self._art_drawn = True
+            return True
         spr = get_strip_frame(asset, frame, self.w, self.h, flip_x=(self.facing < 0))
         if spr is None:
             return False
@@ -56,6 +82,11 @@ class Enemy(Entity):
             sy -= (spr.get_height() - self.h) // 2
         surface.blit(spr, (sx, sy))
         return True
+
+    @property
+    def art_top(self) -> int:
+        """Offset from the hitbox top to the top of the drawn sprite (<= 0)."""
+        return self.h - self.ART_H if self.ART_H else 0
 
     def update(self, tilemap, dt: float, player_rect=None) -> None:
         raise NotImplementedError
@@ -106,8 +137,8 @@ class Enemy(Entity):
         return self.on_shot()
 
     def _draw_hit_flash(self, surface: pygame.Surface, sx: int, sy: int) -> None:
-        if self._hit_timer <= 0:
-            return
+        if self._hit_timer <= 0 or getattr(self, "_art_drawn", False):
+            return   # sprite art flashes its own silhouette in _blit_strip
         if (self._hit_timer // 2) % 2 == 1:
             return
         flash = pygame.Surface((self.w, self.h))
@@ -118,7 +149,9 @@ class Enemy(Entity):
 
 class Goblinkin(Enemy):
     W = 12
-    H = 14
+    H = 18
+    ART_W = 20
+    ART_H = 24
     score_value = 100
 
     def __init__(self, x: float, y: float) -> None:
@@ -148,7 +181,9 @@ class Goblinkin(Enemy):
 
 class Wraith(Enemy):
     W = 12
-    H = 16
+    H = 22
+    ART_W = 20
+    ART_H = 28
     score_value    = 200
     can_be_stomped = False
 
@@ -182,8 +217,10 @@ class Wraith(Enemy):
 
 
 class BossWarg(Enemy):
-    W = 24
-    H = 20
+    W = 36
+    H = 26
+    ART_W = 48
+    ART_H = 32
     score_value       = 500
     is_boss           = True
     _MAX_HP           = 3
@@ -261,13 +298,15 @@ class BossWarg(Enemy):
         # HP pips always rendered above sprite
         for i in range(self._MAX_HP):
             col = (220, 60, 60) if i < self._hp else (60, 30, 30)
-            pygame.draw.rect(surface, col, (sx + i * 8, sy - 4, 6, 3))
+            pygame.draw.rect(surface, col, (sx + i * 8, sy + self.art_top - 4, 6, 3))
         self._draw_hit_flash(surface, sx, sy)
 
 
 class ShieldKnight(Enemy):
-    W = 12
-    H = 16
+    W = 14
+    H = 28
+    ART_W = 24
+    ART_H = 32
     score_value = 150
 
     def __init__(self, x: float, y: float) -> None:
@@ -304,7 +343,9 @@ class ShieldKnight(Enemy):
 
 class SkeletonArcher(Enemy):
     W              = 12
-    H              = 16
+    H              = 28
+    ART_W = 22
+    ART_H = 32
     score_value    = 200
     _DETECT_RANGE  = 120
     _SHOT_INTERVAL = 80
@@ -357,8 +398,10 @@ class SkeletonArcher(Enemy):
 
 
 class CaveBat(Enemy):
-    W              = 10
-    H              = 8
+    W              = 14
+    H              = 10
+    ART_W = 24
+    ART_H = 14
     score_value    = 150
     can_be_stomped = False
     AGGRO_RANGE    = 90
@@ -435,8 +478,10 @@ class CaveBat(Enemy):
 
 class Slime(Enemy):
     """Hops along the ground. Splits into two SmallSlime on stomp."""
-    W           = 10
-    H           = 8
+    W           = 16
+    H           = 11
+    ART_W = 20
+    ART_H = 14
     score_value = 75
     _HOP_PERIOD = 40
     _HOP_VY     = -3.5
@@ -491,8 +536,10 @@ class Slime(Enemy):
 
 class SmallSlime(Enemy):
     """Tiny slime spawned from a Slime split. Single-stomp kill, no further split."""
-    W           = 6
-    H           = 5
+    W           = 9
+    H           = 7
+    ART_W = 12
+    ART_H = 9
     score_value = 30
     _HOP_PERIOD = 28
     _HOP_VY     = -2.8
@@ -531,8 +578,10 @@ class SmallSlime(Enemy):
 
 class SpitterPlant(Enemy):
     """Immobile turret. Lobs an arcing AcidBlob toward the player periodically."""
-    W              = 12
-    H              = 12
+    W              = 14
+    H              = 20
+    ART_W = 20
+    ART_H = 24
     score_value    = 250
     _DETECT_RANGE  = 140
     _SHOT_INTERVAL = 120
@@ -586,8 +635,10 @@ class SpitterPlant(Enemy):
 
 class MimicChest(Enemy):
     """Disguised chest. Wakes and chases when player approaches."""
-    W              = 14
-    H              = 12
+    W              = 18
+    H              = 14
+    ART_W = 22
+    ART_H = 22
     score_value    = 400
     _DETECT_RANGE  = 50
     _MAX_HP        = 3
@@ -679,7 +730,9 @@ class MimicChest(Enemy):
 class GoblinKing(Enemy):
     """Multi-phase final boss. Phase 1: charges + spawns minions. Phase 2: charges faster + shoots."""
     W               = 28
-    H               = 24
+    H               = 34
+    ART_W = 40
+    ART_H = 40
     score_value     = 1500
     is_boss         = True
     _MAX_HP         = 5
@@ -788,7 +841,7 @@ class GoblinKing(Enemy):
         # HP pips
         for i in range(self._MAX_HP):
             col = (220, 60, 60) if i < self._hp else (60, 30, 30)
-            pygame.draw.rect(surface, col, (sx + i * 6, sy - 5, 4, 3))
+            pygame.draw.rect(surface, col, (sx + i * 6, sy + self.art_top - 5, 4, 3))
         self._draw_hit_flash(surface, sx, sy)
 
 
@@ -796,7 +849,9 @@ class NightKing(Enemy):
     """Final boss of the campaign. Phase 1: stalks + summons icy wraiths.
     Phase 2: charges faster + fires frost bolts. Tougher than GoblinKing."""
     W               = 30
-    H               = 26
+    H               = 38
+    ART_W = 44
+    ART_H = 44
     score_value     = 2500
     is_boss         = True
     _MAX_HP         = 6
@@ -905,5 +960,5 @@ class NightKing(Enemy):
         # HP pips
         for i in range(self._MAX_HP):
             col = (120, 200, 255) if i < self._hp else (30, 40, 60)
-            pygame.draw.rect(surface, col, (sx + i * 6, sy - 5, 4, 3))
+            pygame.draw.rect(surface, col, (sx + i * 6, sy + self.art_top - 5, 4, 3))
         self._draw_hit_flash(surface, sx, sy)

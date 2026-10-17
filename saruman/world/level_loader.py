@@ -49,6 +49,25 @@ def _find_spawn(tmx: pytmx.TiledMap) -> tuple[float, float]:
     return _DEFAULT_SPAWN
 
 
+# Hitbox heights the .tmx enemy markers were placed for. Enemies have since
+# grown; keep their feet on the same line by spawning taller ones higher.
+_MARKER_H: dict[str, int] = {
+    "Goblinkin": 14, "Wraith": 16, "BossWarg": 20, "ShieldKnight": 16,
+    "SkeletonArcher": 16, "CaveBat": 8, "Slime": 8, "SpitterPlant": 12,
+    "MimicChest": 12, "GoblinKing": 24, "NightKing": 26,
+}
+
+_ENEMY_CLASSES: dict[str, type[Enemy]] = {
+    "Goblinkin": Goblinkin, "Wraith": Wraith, "BossWarg": BossWarg,
+    "ShieldKnight": ShieldKnight, "SkeletonArcher": SkeletonArcher,
+    "CaveBat": CaveBat, "Slime": Slime, "SpitterPlant": SpitterPlant,
+    "MimicChest": MimicChest, "GoblinKing": GoblinKing, "NightKing": NightKing,
+}
+
+# Patrolling flyers take the marker width as their patrol range.
+_PATROL_DEFAULT = {"Wraith": 64, "CaveBat": 70}
+
+
 def _find_enemies(tmx: pytmx.TiledMap) -> list[Enemy]:
     enemies: list[Enemy] = []
     for layer in tmx.layers:
@@ -56,31 +75,30 @@ def _find_enemies(tmx: pytmx.TiledMap) -> list[Enemy]:
             continue
         for obj in layer:
             otype = getattr(obj, "type", None)
-            if otype == "Goblinkin":
-                enemies.append(Goblinkin(float(obj.x), float(obj.y)))
-            elif otype == "Wraith":
-                patrol_w = float(getattr(obj, "width", 64) or 64)
-                enemies.append(Wraith(float(obj.x), float(obj.y), patrol_w))
-            elif otype == "BossWarg":
-                enemies.append(BossWarg(float(obj.x), float(obj.y)))
-            elif otype == "ShieldKnight":
-                enemies.append(ShieldKnight(float(obj.x), float(obj.y)))
-            elif otype == "SkeletonArcher":
-                enemies.append(SkeletonArcher(float(obj.x), float(obj.y)))
-            elif otype == "CaveBat":
-                patrol_w = float(getattr(obj, "width", 70) or 70)
-                enemies.append(CaveBat(float(obj.x), float(obj.y), patrol_w))
-            elif otype == "Slime":
-                enemies.append(Slime(float(obj.x), float(obj.y)))
-            elif otype == "SpitterPlant":
-                enemies.append(SpitterPlant(float(obj.x), float(obj.y)))
-            elif otype == "MimicChest":
-                enemies.append(MimicChest(float(obj.x), float(obj.y)))
-            elif otype == "GoblinKing":
-                enemies.append(GoblinKing(float(obj.x), float(obj.y)))
-            elif otype == "NightKing":
-                enemies.append(NightKing(float(obj.x), float(obj.y)))
+            cls   = _ENEMY_CLASSES.get(otype)
+            if cls is None:
+                continue
+            x = float(obj.x)
+            y = float(obj.y) + _MARKER_H[otype] - cls.H      # same feet line
+            # Centre the (possibly wider) hitbox on the marker's old one.
+            x -= (cls.W - _old_w(otype)) / 2
+            if otype in _PATROL_DEFAULT:
+                patrol_w = float(getattr(obj, "width", 0) or _PATROL_DEFAULT[otype])
+                enemies.append(cls(x, y, patrol_w))
+            else:
+                enemies.append(cls(x, y))
     return enemies
+
+
+_MARKER_W: dict[str, int] = {
+    "Goblinkin": 12, "Wraith": 12, "BossWarg": 24, "ShieldKnight": 12,
+    "SkeletonArcher": 12, "CaveBat": 10, "Slime": 10, "SpitterPlant": 12,
+    "MimicChest": 14, "GoblinKing": 28, "NightKing": 30,
+}
+
+
+def _old_w(otype: str) -> int:
+    return _MARKER_W[otype]
 
 
 def _find_items(tmx: pytmx.TiledMap) -> list[Item]:
