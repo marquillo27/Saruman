@@ -54,7 +54,7 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/):
 
 ```
 uv sync
-uv run saruman
+uv run python -m saruman
 ```
 
 The first command installs all dependencies into a local `.venv`; the second starts the game. No system-wide installation, nothing outside the project folder is touched.
