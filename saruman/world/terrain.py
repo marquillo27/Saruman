@@ -31,6 +31,12 @@ class Skin:
     bricks:   bool = False                 # draw mortar lines (masonry)
     drips:    Color | None = None          # icicles / hanging moss under overhangs
 
+    @property
+    def rim(self) -> Color:
+        """Edge line colour: the outline softened toward the fill, so edges
+        read as shading rather than a black cut-out line."""
+        return _mix(self.fill[0], self.outline, 0.45)
+
 
 SKINS: dict[str, Skin] = {
     "greenwood": Skin(
@@ -145,14 +151,14 @@ def _paint_tile(surf: pygame.Surface, tx: int, ty: int, skin: Skin, solid) -> No
 
     # Rims on exposed sides: dark outline plus a 1 px highlight inside.
     if open_l:
-        surf.fill(skin.outline, (x0, y0, 1, T))
+        surf.fill(skin.rim, (x0, y0, 1, T))
         surf.fill(light, (x0 + 1, y0, 1, T))
     if open_r:
-        surf.fill(skin.outline, (x0 + T - 1, y0, 1, T))
+        surf.fill(skin.rim, (x0 + T - 1, y0, 1, T))
         surf.fill(dark, (x0 + T - 2, y0, 1, T))
     if open_b:
         surf.fill(dark, (x0, y0 + T - 3, T, 2))
-        surf.fill(skin.outline, (x0, y0 + T - 1, T, 1))
+        surf.fill(skin.rim, (x0, y0 + T - 1, T, 1))
 
     if open_t:
         _paint_cap(surf, x0, y0, skin, rng, open_l, open_r)
@@ -162,7 +168,7 @@ def _paint_cap(surf, x0: int, y0: int, skin: Skin, rng: random.Random,
                open_l: bool, open_r: bool) -> None:
     top, hi, under = skin.cap
     ch = skin.cap_h
-    surf.fill(skin.outline, (x0, y0, T, 1))
+    surf.fill(skin.rim, (x0, y0, T, 1))
     surf.fill(top, (x0, y0 + 1, T, ch))
     surf.fill(hi, (x0, y0 + 1, T, 1))
     # Ragged lower edge of the cap hanging over the fill.
@@ -174,9 +180,9 @@ def _paint_cap(surf, x0: int, y0: int, skin: Skin, rng: random.Random,
         bx = rng.randrange(1, T - 2)
         surf.fill(hi, (x0 + bx, y0 + 2, 1, 1))
     if open_l:
-        surf.fill(skin.outline, (x0, y0, 1, ch + 2))
+        surf.fill(skin.rim, (x0, y0, 1, ch + 2))
     if open_r:
-        surf.fill(skin.outline, (x0 + T - 1, y0, 1, ch + 2))
+        surf.fill(skin.rim, (x0 + T - 1, y0, 1, ch + 2))
 
 
 def _paint_drips(surf, tx: int, ty: int, skin: Skin) -> None:

@@ -22,9 +22,16 @@ if TYPE_CHECKING:
     from saruman.entities.projectile import Projectile
 
 
+# Frame indices in assets/sprites/hero_strip.png (see tools/generate_hero.py)
+_HERO_W, _HERO_H = 24, 36
+_F_IDLE, _F_WALK, _F_JUMP, _F_FALL, _F_ATTACK, _F_WALL = 0, 4, 10, 11, 12, 15
+_HERO_CENTER_X   = 11       # body centre column inside a right-facing frame
+_HERO_FEET_Y     = 34       # last boot row inside a frame
+
+
 class Player(Entity):
-    W = 10
-    H = 16
+    W = 12
+    H = 28
     _DEATH_FRAMES = 35
 
     def __init__(self, x: float, y: float) -> None:
@@ -48,6 +55,7 @@ class Player(Entity):
         self._bonus_invuln   = 0   # bonus power-up invulnerability (frames)
         self.weapon_level    = 0
         self._anim_tick      = 0
+        self._idle_tick      = 0
         self._land_timer     = 0
         self._dying          = False
         self._death_timer    = 0
@@ -119,8 +127,8 @@ class Player(Entity):
         if self._swing_active <= 0:
             return None
         if self.facing > 0:
-            return pygame.Rect(self.rect.right,       self.rect.top + 4, 16, 10)
-        return     pygame.Rect(self.rect.left - 16,   self.rect.top + 4, 16, 10)
+            return pygame.Rect(self.rect.right,       self.rect.top + 8, 20, 14)
+        return     pygame.Rect(self.rect.left - 20,   self.rect.top + 8, 20, 14)
 
     def try_shoot(self) -> "projectile.Projectile | None":
         if self._shoot_cooldown > 0:
@@ -212,6 +220,7 @@ class Player(Entity):
             self._anim_tick += 1
         else:
             self._anim_tick = 0
+        self._idle_tick += 1
 
     @property
     def wall_sliding(self) -> bool:
@@ -288,7 +297,7 @@ class Player(Entity):
             return
 
         if self._dying:
-            spr = get_strip_frame("player", 0, 12, 18, flip_x=(self.facing < 0))
+            spr = self._hero_frame(_F_IDLE)
             if spr:
                 frac  = self._death_timer / self._DEATH_FRAMES
                 angle = (1.0 - frac) * 540.0
@@ -299,52 +308,20 @@ class Player(Entity):
                 surface.blit(spr, (bx, by))
             return
 
-        # --- Melee attack animation ---
-        if self._swing_anim > 0:
-            anim_frame = (9 - self._swing_anim) // 3   # 0=raise, 1=extend, 2=follow
-            spr = get_strip_frame("player_attack", anim_frame, 12, 18,
-                                  flip_x=(self.facing < 0))
-            if spr:
-                bx = sx - (spr.get_width()  - self.W) // 2
-                by = sy - (spr.get_height() - self.H) // 2
-                if self.facing < 0:
-                    bx = sx - (spr.get_width() - self.W) // 2
-                surface.blit(spr, (bx, by))
-            else:
-                # Fallback: flash gold
-                pygame.draw.rect(surface, COL_GOLD, (sx, sy, self.W, self.H))
-            return   # skip normal body while mid-swing
-
-        # --- Normal body ---
-        if not self.on_ground:
-            frame = 5 if self.vel_y > 3 else 4   # F5=falling, F4=jumping/floating
-        else:
-            frame = (self._anim_tick // 6) % 4   # F0-F3 walk cycle
-        spr = get_strip_frame("player", frame, 12, 18, flip_x=(self.facing < 0))
+        spr = self._hero_frame(self._frame_index())
         if spr:
-            bx = sx - (spr.get_width()  - self.W) // 2
-            by = sy - (spr.get_height() - self.H) // 2
-            sw, sh = spr.get_size()
-            if not self.on_ground and self.vel_y < -3:
-                # Rising — stretch tall, anchor at feet
-                spr = pygame.transform.scale(spr, (sw - 1, sh + 2))
-                by -= 2
-            elif not self.on_ground and self.vel_y > 5:
-                # Falling fast — stretch tall, anchor at head
-                spr = pygame.transform.scale(spr, (sw - 1, sh + 3))
-            elif self._land_timer > 0:
-                # Landing squash — wider+shorter, anchor at feet
-                frac    = self._land_timer / 5.0
-                extra_w = int(3 * frac)
-                extra_h = int(2 * frac)
-                spr = pygame.transform.scale(spr, (sw + extra_w, sh - extra_h))
-                bx -= extra_w // 2
-                by += extra_h
+            # Feet on the hitbox bottom, body centred on the hitbox.
+            cx = _HERO_CENTER_X if self.facing > 0 else _HERO_W - 1 - _HERO_CENTER_X
+            bx = sx + self.W // 2 - cx
+            by = sy + self.H - 1 - _HERO_FEET_Y
             surface.blit(spr, (bx, by))
         else:
             pygame.draw.rect(surface, COL_GOLD, (sx, sy, self.W, self.H))
-            eye_x = sx + (6 if self.facing > 0 else 2)
+            eye_x = sx + (8 if self.facing > 0 else 2)
             pygame.draw.rect(surface, COL_DARK_GRAY, (eye_x, sy + 4, 2, 2))
+
+        if self._swing_anim and self._swing_anim <= 3:
+            self._draw_slash(surface, sx, sy)
 
         # --- Shield overlay (drawn on top of body) ---
         if self._shielding:
@@ -353,6 +330,35 @@ class Player(Entity):
         # --- Bonus invulnerability aura (shield power-up) ---
         if self._bonus_invuln > 0:
             self._draw_bonus_aura(surface, sx, sy)
+
+    def _hero_frame(self, index: int) -> "pygame.Surface | None":
+        return get_strip_frame("hero", index, _HERO_W, _HERO_H, flip_x=(self.facing < 0))
+
+    def _frame_index(self) -> int:
+        """Pick the hero strip frame for the current state."""
+        if self._swing_anim > 0:
+            return _F_ATTACK + min(2, (9 - self._swing_anim) // 3)   # wind-up, swing, strike
+        if self._wall_sliding:
+            return _F_WALL
+        if not self.on_ground:
+            return _F_FALL if self.vel_y > 1.0 else _F_JUMP
+        if abs(self.vel_x) > 0.3:
+            return _F_WALK + (self._anim_tick // 5) % 6
+        return _F_IDLE + (self._idle_tick // 14) % 4
+
+    def _draw_slash(self, surface: pygame.Surface, sx: int, sy: int) -> None:
+        """Pale-blue magic arc in front of the staff on the strike frames."""
+        r   = self.swing_rect
+        if r is None:
+            r = pygame.Rect(0, 0, 20, 14)
+        w, h = 22, 22
+        arc  = pygame.Surface((w, h), pygame.SRCALPHA)
+        rect = pygame.Rect(0, 0, w, h)
+        start, end = (-1.2, 1.2) if self.facing > 0 else (1.94, 4.34)
+        pygame.draw.arc(arc, (110, 160, 230, 200), rect, start, end, 3)
+        pygame.draw.arc(arc, (200, 235, 255, 255), rect.inflate(-4, -4), start, end, 1)
+        ax = sx + self.W - 4 if self.facing > 0 else sx - w + 4
+        surface.blit(arc, (ax, sy + 4))
 
     def _draw_bonus_aura(self, surface: pygame.Surface, sx: int, sy: int) -> None:
         """Pulsing protective ring shown while the shield power-up is active."""
@@ -378,7 +384,7 @@ class Player(Entity):
         else:
             shx = sx - 4
 
-        # Shield body — 3 px wide, 12 px tall, centred on the player sprite
-        shy = sy + 2
-        pygame.draw.rect(surface, col_outer, (shx, shy,     3, 12))
-        pygame.draw.rect(surface, col_inner, (shx + 1, shy + 1, 1, 10))
+        # Shield body — 3 px wide, 18 px tall, in front of the chest
+        shy = sy + 6
+        pygame.draw.rect(surface, col_outer, (shx, shy,     3, 18))
+        pygame.draw.rect(surface, col_inner, (shx + 1, shy + 1, 1, 16))

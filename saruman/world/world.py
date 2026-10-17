@@ -92,7 +92,9 @@ class World:
         interactives: list[Interactive] | None = None,
     ) -> None:
         self._tilemap      = tilemap
-        self._player       = Player(*player_spawn)
+        # Spawn markers are 16 px tall; stand the (taller) hero on the same feet line.
+        spawn_x, spawn_y   = player_spawn
+        self._player       = Player(spawn_x, spawn_y + 16 - Player.H)
         self._camera       = Camera(tilemap.pixel_width, tilemap.pixel_height)
         self._enemies      = list(enemies)
         self._items        = list(items)

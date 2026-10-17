@@ -55,7 +55,7 @@ def test_spring_no_overlap_when_player_above_rising():
 
 def test_spring_overlap_detected_when_falling_into_top():
     s = Spring(50.0, 100.0)   # rect (50, 100, 12, 6)
-    p = Player(50.0, 85.0)    # bottom = 101 → overlaps spring top by 1px
+    p = Player(50.0, 101.0 - Player.H)    # bottom = 101 → overlaps spring top by 1px
     p.vel_y = 4.0
     assert s.player_overlap_from_above(p)
 
@@ -135,7 +135,7 @@ def test_platform_delta_matches_position_change():
 
 def test_carry_snaps_player_to_platform_top():
     plat = MovingPlatform(0.0, 100.0, axis="x", range_px=64.0)
-    p    = Player(8.0, 86.0)   # bottom = 102, within (99, 104) window
+    p    = Player(8.0, 102.0 - Player.H)   # bottom = 102, within (99, 104) window
     p.vel_y = 2.0
     platform_carry(p, [plat])
     assert p.on_ground
