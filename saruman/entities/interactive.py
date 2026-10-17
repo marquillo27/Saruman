@@ -150,3 +150,52 @@ class Spike(Interactive):
                 [(bx, sy + self.H - 1), (bx + 4, sy + self.H - 1), (bx + 2, sy)],
                 1,
             )
+
+
+class Checkpoint(Interactive):
+    """Standing brazier. Touching it lights it and makes it the respawn point
+    for falls into pits."""
+    W = 12
+    H = 32
+
+    def __init__(self, x: float, y: float) -> None:
+        super().__init__(x, y)
+        self.lit   = False
+        self._tick = 0
+
+    def light(self) -> bool:
+        """Light the brazier; returns True only the first time."""
+        if self.lit:
+            return False
+        self.lit = True
+        return True
+
+    @property
+    def respawn_point(self) -> tuple[float, float]:
+        """Feet position (x centre, y bottom) where the player reappears."""
+        r = self.rect
+        return float(r.centerx), float(r.bottom)
+
+    def update(self, dt: float) -> None:
+        self._tick += 1
+
+    def draw(self, surface: pygame.Surface, sx: int, sy: int) -> None:
+        cx = sx + self.W // 2
+        # Stone pillar with a bowl on top
+        pygame.draw.rect(surface, (70, 66, 74), (cx - 2, sy + 10, 4, self.H - 12))
+        pygame.draw.rect(surface, (104, 98, 110), (cx - 2, sy + 10, 1, self.H - 12))
+        pygame.draw.rect(surface, (58, 54, 62), (cx - 5, sy + self.H - 3, 10, 3))
+        pygame.draw.rect(surface, (96, 88, 100), (cx - 6, sy + 7, 12, 4))
+        pygame.draw.rect(surface, (60, 54, 66), (cx - 6, sy + 10, 12, 1))
+        if not self.lit:
+            pygame.draw.rect(surface, (50, 44, 48), (cx - 4, sy + 6, 8, 1))   # cold ash
+            return
+        # Flickering flame + glow
+        f = (self._tick // 4) % 3
+        glow = pygame.Surface((28, 28), pygame.SRCALPHA)
+        pygame.draw.circle(glow, (255, 170, 60, 50), (14, 14), 13)
+        pygame.draw.circle(glow, (255, 200, 90, 60), (14, 14), 8)
+        surface.blit(glow, (cx - 14, sy - 10))
+        h = 7 + f
+        pygame.draw.polygon(surface, (255, 120, 30), [(cx - 4, sy + 7), (cx + 4, sy + 7), (cx + (f - 1), sy + 7 - h)])
+        pygame.draw.polygon(surface, (255, 220, 110), [(cx - 2, sy + 7), (cx + 2, sy + 7), (cx, sy + 7 - h + 3)])

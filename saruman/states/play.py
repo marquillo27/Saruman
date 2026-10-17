@@ -172,6 +172,7 @@ class PlayState(State):
             self._world.lives,
             self._world.score,
             self._world.player.weapon_level,
+            self._world.relics,
         )
 
     # ------------------------------------------------------------------

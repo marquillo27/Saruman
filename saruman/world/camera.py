@@ -27,5 +27,10 @@ class Camera:
         self.x = max(0.0, min(self.x, self._max_x))
         self.y = max(self._min_y, min(self.y, self._max_y))
 
+    def snap(self, target: pygame.Rect) -> None:
+        """Jump straight to `target` (e.g. after a respawn) instead of panning."""
+        self.x = max(0.0, min(target.centerx - INTERNAL_W // 2, self._max_x))
+        self.y = max(self._min_y, min(target.centery - INTERNAL_H // 2, self._max_y))
+
     def world_to_screen(self, wx: float, wy: float) -> tuple[int, int]:
         return int(wx - self.x), int(wy - self.y)

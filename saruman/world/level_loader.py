@@ -9,8 +9,8 @@ from saruman.entities.enemy import (
     BossWarg, CaveBat, Enemy, GoblinKing, Goblinkin, MimicChest, NightKing,
     ShieldKnight, SkeletonArcher, Slime, SpitterPlant, Wraith,
 )
-from saruman.entities.interactive import Interactive, MovingPlatform, Spike, Spring
-from saruman.entities.item import Coin, Gem, Heart, Item, WeaponUpgrade
+from saruman.entities.interactive import Checkpoint, Interactive, MovingPlatform, Spike, Spring
+from saruman.entities.item import Coin, Gem, Heart, Item, Relic, WeaponUpgrade
 from saruman.entities.trigger import LevelEndTrigger, Trigger, WarpTrigger
 from saruman.world.tilemap import Tilemap
 
@@ -115,6 +115,8 @@ def _find_items(tmx: pytmx.TiledMap) -> list[Item]:
                 items.append(Heart(x, y))
             elif otype == "WeaponUpgrade":
                 items.append(WeaponUpgrade(x, y))
+            elif otype == "Relic":
+                items.append(Relic(x + 2, y + 2))
             elif otype == "Gem":
                 props = getattr(obj, "properties", {}) or {}
                 color = str(props.get("color", "blue"))
@@ -139,6 +141,9 @@ def _find_interactives(tmx: pytmx.TiledMap) -> list[Interactive]:
                 interactives.append(MovingPlatform(x, y, axis, range_px))
             elif otype == "Spike":
                 interactives.append(Spike(x, y))
+            elif otype == "Checkpoint":
+                h = float(getattr(obj, "height", 32) or 32)
+                interactives.append(Checkpoint(x, y + h - Checkpoint.H))
     return interactives
 
 

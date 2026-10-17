@@ -13,9 +13,9 @@ from saruman.core.assets import get_sprite
 from saruman.core.audio import get_audio
 from saruman.core.input import Action, Input
 from saruman.entities.enemy import Enemy
-from saruman.entities.interactive import Interactive, MovingPlatform, Spike, Spring
+from saruman.entities.interactive import Checkpoint, Interactive, MovingPlatform, Spike, Spring
 from saruman.entities.item import (
-    Coin, FruitPickup, Gem, Heart, Item, NukePickup, ShieldPickup, WeaponUpgrade,
+    Coin, FruitPickup, Gem, Heart, Item, NukePickup, Relic, ShieldPickup, WeaponUpgrade,
 )
 from saruman.entities.player import Player
 from saruman.entities.projectile import EnemyProjectile, Projectile
@@ -95,6 +95,8 @@ class World:
         # Spawn markers are 16 px tall; stand the (taller) hero on the same feet line.
         spawn_x, spawn_y   = player_spawn
         self._player       = Player(spawn_x, spawn_y + 16 - Player.H)
+        # Where a fall into a pit puts the player back: feet (x centre, bottom).
+        self._respawn      = (spawn_x + Player.W / 2, spawn_y + 16)
         self._camera       = Camera(tilemap.pixel_width, tilemap.pixel_height)
         self._enemies      = list(enemies)
         self._items        = list(items)
@@ -120,6 +122,8 @@ class World:
         self._nuke_flash          = False   # one-frame signal for PlayState screen shake
         self._hitstop             = 0
         self._fruit_timer         = 0       # >0 while enemies are harmless fruit
+        self._relics              = 0
+        self._relics_total        = sum(isinstance(i, Relic) for i in items)
         self._bonus_timer         = random.randint(BONUS_SPAWN_MIN, BONUS_SPAWN_MAX)
         self._player_dying        = False
         self._player_was_grounded = True
@@ -171,6 +175,11 @@ class World:
     def nuke_flash(self) -> bool:
         return self._nuke_flash
 
+    @property
+    def relics(self) -> tuple[int, int]:
+        """(found, total) hidden relics in this level."""
+        return self._relics, self._relics_total
+
     def carry_state(self) -> dict[str, int]:
         return {
             "lives":        self._lives,
@@ -221,6 +230,7 @@ class World:
 
         # Springs: launch player on top-overlap
         self._check_player_springs()
+        self._check_checkpoints()
 
         if inp.pressed(Action.SHOOT):
             proj = self._player.try_shoot()
@@ -298,7 +308,7 @@ class World:
             self._weather.update(dt)
 
         if self._player.y > self._tilemap.pixel_height + 32:
-            self._apply_damage(ignore_shield=True)
+            self._fall_out()
 
         if not self._player_was_grounded and self._player.on_ground:
             cx = self._player.x + self._player.W / 2
@@ -370,6 +380,11 @@ class World:
 
         px, py = self._camera.world_to_screen(self._player.x, self._player.y)
         self._player.draw(surface, px, py)
+
+        # Fake walls hide secrets in front of the actors; peek inside when entered.
+        if hasattr(self._tilemap, "draw_fake"):
+            self._tilemap.draw_fake(surface, self._camera.x, self._camera.y,
+                                    reveal=self._player_in_fake_wall())
 
         for particle in self._particles:
             sx, sy = self._camera.world_to_screen(int(particle.x), int(particle.y))
@@ -482,10 +497,25 @@ class World:
                 get_audio().play_sfx("shield_block.wav")
             elif isinstance(item, NukePickup):
                 self._detonate_nuke()
+            elif isinstance(item, Relic):
+                self._relics += 1
+                self._score  += item.score_value
+                self._particles += burst(item.rect.centerx, item.rect.centery,
+                                         (255, 220, 120), count=20, speed=2.6)
+                get_audio().play_sfx("coin.wav")
             elif isinstance(item, FruitPickup):
                 self._fruit_timer = BONUS_FRUIT_FRAMES
                 get_audio().play_sfx("coin.wav")
             item.alive = False
+
+    def _player_in_fake_wall(self) -> bool:
+        r  = self._player.rect.inflate(8, 8)
+        ts = 16
+        for ty in range(r.top // ts, r.bottom // ts + 1):
+            for tx in range(r.left // ts, r.right // ts + 1):
+                if getattr(self._tilemap, "is_fake", lambda *_: False)(tx, ty):
+                    return True
+        return False
 
     def _check_player_springs(self) -> None:
         """Activate Spring entities the player landed on this frame."""
@@ -494,6 +524,31 @@ class World:
                 inter.trigger()
                 self._player.spring_launch(Spring.LAUNCH_VEL_Y)
                 get_audio().play_sfx("jump.wav")
+
+    def _check_checkpoints(self) -> None:
+        pr = self._player.rect
+        for inter in self._interactives:
+            if isinstance(inter, Checkpoint) and pr.colliderect(inter.rect):
+                if inter.light():
+                    get_audio().play_sfx("coin.wav")
+                    cx, cy = inter.rect.centerx, inter.rect.top + 4
+                    self._particles += burst(cx, cy, (255, 190, 80), count=14, speed=2.0)
+                self._respawn = inter.respawn_point
+
+    def _fall_out(self) -> None:
+        """Fell into a pit: lose one life and reappear at the last checkpoint."""
+        self._lives -= 1
+        self._damage_flash = True
+        get_audio().play_sfx("hit.wav")
+        p = self._player
+        fx, fy = self._respawn
+        p.x, p.y = fx - p.W / 2, fy - p.H
+        p.vel_x = p.vel_y = 0.0
+        p.grant_respawn_iframes()
+        self._camera.snap(p.rect)
+        if self._lives <= 0:
+            p.trigger_death()
+            self._player_dying = True
 
     def _check_player_spikes(self) -> None:
         """Damage the player if they touch any Spike (runs outside hitstop guard)."""
@@ -526,10 +581,17 @@ class World:
                 self._hitstop = 4
             break   # one enemy contact per swing frame
 
+    @property
+    def boss_alive(self) -> bool:
+        return any(e.alive and e.is_boss for e in self._enemies)
+
     def _check_player_triggers(self) -> None:
         pr = self._player.rect
+        exit_locked = self.boss_alive          # beat the boss before leaving
         for trigger in self._triggers:
             if trigger.triggered or not pr.colliderect(trigger.hit_rect):
+                continue
+            if exit_locked and isinstance(trigger, LevelEndTrigger):
                 continue
             trigger.triggered = True
             if isinstance(trigger, WarpTrigger):
@@ -630,6 +692,8 @@ class World:
 
     def _draw_exit_beacons(self, surface: pygame.Surface) -> None:
         """Pulsing golden light over each level exit so players can find it."""
+        if self.boss_alive:
+            return                                            # exit sealed
         pulse = abs((self._frame % 60) - 30) / 30.0          # 1 → 0 → 1
         for trigger in self._triggers:
             if not isinstance(trigger, LevelEndTrigger):

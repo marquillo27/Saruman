@@ -57,13 +57,12 @@ def test_tilemap_has_positive_dimensions(level):
     assert tilemap.pixel_height > 0
 
 
-def test_solid_ground_row(level):
-    tilemap, *_ = level
+def test_spawn_stands_on_solid_ground(level):
+    tilemap, spawn, *_ = level
     from saruman.config import TILE_SIZE
-    ground_row = 11
-    map_w = tilemap.pixel_width // TILE_SIZE
-    solid_cols = [tilemap.is_solid(tx, ground_row) for tx in range(map_w)]
-    assert all(solid_cols), "Ground row must be entirely solid"
+    tx = int(spawn[0]) // TILE_SIZE
+    feet_row = (int(spawn[1]) + 16) // TILE_SIZE
+    assert tilemap.is_solid(tx, feet_row), "Spawn marker must stand on ground"
 
 
 # ---------------------------------------------------------------------------
@@ -190,13 +189,14 @@ def test_mines_has_boss_warg(mines):
     assert any(isinstance(e, BossWarg) for e in enemies)
 
 
-def test_mines_has_solid_ceiling(mines):
-    """Sunken Mines has a solid ceiling tile row at row 0."""
-    from saruman.config import TILE_SIZE
+def test_mines_has_tunnel_ceilings(mines):
+    """Sunken Mines has low tunnels: rock overhead with free floor space below."""
     tilemap, *_ = mines
-    map_w = tilemap.pixel_width // TILE_SIZE
-    ceiling_cols = [tilemap.is_solid(tx, 0) for tx in range(map_w)]
-    assert all(ceiling_cols), "Sunken Mines must have a solid ceiling at row 0"
+    floor = tilemap.height - 4
+    assert any(
+        not tilemap.is_solid(tx, floor - 1) and tilemap.is_solid(tx, floor - 5)
+        for tx in range(tilemap.width)
+    )
 
 
 def test_mines_has_level_end_trigger(mines):

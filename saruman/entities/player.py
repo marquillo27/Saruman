@@ -77,6 +77,10 @@ class Player(Entity):
     def shielded_bonus(self) -> bool:
         return self._bonus_invuln > 0
 
+    def grant_respawn_iframes(self) -> None:
+        """Blinking post-hit invulnerability after reappearing at a checkpoint."""
+        self._hit_timer = HIT_IFRAMES
+
     def grant_invuln(self, frames: int) -> None:
         """Grant a timed invulnerability bonus (the shield power-up)."""
         self._bonus_invuln = max(self._bonus_invuln, frames)

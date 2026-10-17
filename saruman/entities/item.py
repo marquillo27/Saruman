@@ -165,3 +165,27 @@ class Gem(Item):
             (sx + self.W // 2, sy + self.H - 3),
             (sx + self.W // 2 - 2, sy + self.H // 2),
         ])
+
+
+class Relic(Item):
+    """Hidden treasure (an ancient golden chalice); usually behind a fake wall."""
+    W = 12
+    H = 14
+    score_value = 1000
+
+    def draw(self, surface: pygame.Surface, sx: int, sy: int) -> None:
+        pulse = 0.5 + 0.5 * math.sin(self._time * 4.0)
+        glow = pygame.Surface((28, 28), pygame.SRCALPHA)
+        pygame.draw.circle(glow, (255, 220, 120, int(40 + 50 * pulse)), (14, 14), 13)
+        surface.blit(glow, (sx - 8, sy - 7))
+        gold, light, dark = (226, 178, 62), (255, 236, 150), (150, 104, 36)
+        # Cup, stem and base
+        pygame.draw.rect(surface, dark,  (sx + 1, sy + 1, 10, 6))
+        pygame.draw.rect(surface, gold,  (sx + 2, sy + 1, 8, 5))
+        pygame.draw.rect(surface, light, (sx + 3, sy + 2, 2, 3))
+        pygame.draw.rect(surface, dark,  (sx + 5, sy + 7, 2, 3))
+        pygame.draw.rect(surface, dark,  (sx + 2, sy + 10, 8, 3))
+        pygame.draw.rect(surface, gold,  (sx + 3, sy + 10, 6, 2))
+        pygame.draw.rect(surface, (110, 200, 255), (sx + 5, sy + 3, 2, 2))   # gem
+        if pulse > 0.8:
+            surface.fill((255, 255, 230), (sx + 10, sy - 1, 1, 1))
