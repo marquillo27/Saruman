@@ -1,6 +1,6 @@
 [project]
 name = "project-saruman"
-version = "0.1.0"
+version = "2.0.0"
 description = "A pixel-art fantasy platformer inspired by LOTR/GoT"
 readme = "README.md"
 requires-python = ">=3.12"

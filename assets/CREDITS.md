@@ -19,6 +19,16 @@ All assets used in Project Saruman are listed here with their license.
 |-------|--------|---------|--------|
 | player.png, enemy_goblinkin.png, enemy_wraith.png, enemy_bosswarg.png, item_coin.png, item_heart.png, item_weapon.png, projectile.png | Project Saruman | CC0 | generated programmatically by `tools/generate_sprites.py` |
 
+## Backdrops
+| Asset | Author | License | Source |
+|-------|--------|---------|--------|
+| assets/backgrounds/*.png | Project Saruman | see models | generated locally with ComfyUI + Stable Diffusion 1.5 (CreativeML OpenRAIL-M) and the PixelArtRedmond 1.5V LoRA by artificialguybr (commercial use allowed, no attribution required — credited anyway), then processed by `tools/process_backgrounds.py` |
+
+## Hero & enemies (v2.0)
+| Asset | Author | License | Source |
+|-------|--------|---------|--------|
+| hero_strip.png, enemy_*_strip.png | Project Saruman | CC0 | generated programmatically by `tools/generate_hero.py` and `tools/generate_enemies.py` (hero design based on a Stable Diffusion concept) |
+
 ## Music
 | Asset | Author | License | Source |
 |-------|--------|---------|--------|
