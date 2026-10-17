@@ -7,11 +7,28 @@ WINDOW_H = INTERNAL_H * SCALE   # 540
 FPS = 60
 
 GRAVITY = 0.45
-JUMP_VEL = -9.0
+JUMP_VEL = -8.6
 MAX_FALL_SPEED = 14.0
-MOVE_SPEED = 2.5
+MOVE_SPEED = 2.4
 COYOTE_FRAMES = 6
 JUMP_BUFFER_FRAMES = 6
+
+# --- Player movement feel (px/frame and px/frame² at 60 Hz) ---
+# Run: ~10 frames to top speed, ~6 to stop; turning around brakes a bit harder.
+RUN_ACCEL       = 0.22
+RUN_DECEL       = 0.38
+RUN_TURN        = 0.50
+# Air: weaker steering, momentum mostly carried.
+AIR_ACCEL       = 0.16
+AIR_DECEL       = 0.06
+AIR_TURN        = 0.26
+# Jump arc: falling is heavier than rising, a brief hang at the apex, and
+# letting go of jump early ends the rise quickly (tap ≈ 2 tiles, hold ≈ 5).
+GRAVITY_FALL    = 0.55
+JUMP_CUT_GRAVITY_MULT = 2.5
+APEX_HANG_SPEED = 0.6    # |vel_y| below this counts as the apex
+APEX_GRAVITY_MULT = 0.6
+PLAYER_MAX_FALL = 10.0
 
 PLAYER_LIVES = 3
 MAX_LIVES = 7    # Hearts stack up to this; starting lives stay PLAYER_LIVES

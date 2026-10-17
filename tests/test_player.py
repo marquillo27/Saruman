@@ -289,7 +289,8 @@ def test_speed_reduced_while_shielding():
     p.on_ground = True
     p._shield_cd = 0
     inp = _inp_held(Action.SHIELD, Action.MOVE_RIGHT)
-    p.update(inp, _MAP)
+    for _ in range(20):
+        p.update(inp, _MAP)
     assert abs(p.vel_x - MOVE_SPEED * 0.5) < 0.01
 
 
@@ -297,5 +298,6 @@ def test_speed_normal_when_not_shielding():
     p = Player(32, 160)
     p.on_ground = True
     inp = _inp_held(Action.MOVE_RIGHT)
-    p.update(inp, _MAP)
+    for _ in range(20):
+        p.update(inp, _MAP)
     assert abs(p.vel_x - MOVE_SPEED) < 0.01

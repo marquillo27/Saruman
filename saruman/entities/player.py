@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 import pygame
 
 from saruman.config import (
-    COYOTE_FRAMES, JUMP_BUFFER_FRAMES, JUMP_VEL, MOVE_SPEED,
+    AIR_ACCEL, AIR_DECEL, AIR_TURN, APEX_GRAVITY_MULT, APEX_HANG_SPEED,
+    COYOTE_FRAMES, GRAVITY, GRAVITY_FALL, JUMP_BUFFER_FRAMES, JUMP_CUT_GRAVITY_MULT,
+    JUMP_VEL, MOVE_SPEED, PLAYER_MAX_FALL, RUN_ACCEL, RUN_DECEL, RUN_TURN,
     COL_GOLD, COL_DARK_GRAY, HIT_IFRAMES, SHOOT_COOLDOWN, SWING_COOLDOWN, SHIELD_CD,
 )
 from saruman.core.assets import get_sprite, get_strip_frame
@@ -28,6 +30,7 @@ class Player(Entity):
         self._coyote_timer   = 0
         self._jump_buffer    = 0
         self._jumps_left     = 2
+        self._jump_cuttable  = True   # False after a spring: its launch is fixed
         self._hit_timer      = 0
         self._shoot_cooldown = 0
         self._swing_cooldown = 0
@@ -91,6 +94,7 @@ class Player(Entity):
         self.vel_y       = vel_y
         self._jumps_left = 1
         self._jump_buffer = 0
+        self._jump_cuttable = False
 
     def try_swing(self) -> bool:
         """Attempt a melee swing. Returns True if the swing started."""
@@ -136,19 +140,20 @@ class Player(Entity):
         if self._shield_cd      > 0: self._shield_cd      -= 1
         self._shielding = inp.held(Action.SHIELD) and self._shield_cd <= 0
 
-        # Horizontal movement — halved while shielding
-        _spd = MOVE_SPEED * 0.5 if self._shielding else MOVE_SPEED
+        # Horizontal movement — accelerate toward the target speed (halved while
+        # shielding) instead of snapping to it, so running has weight.
+        direction = 0
         if inp.held(Action.MOVE_LEFT):
-            self.vel_x = -_spd
-            self.facing = -1
+            direction = -1
         elif inp.held(Action.MOVE_RIGHT):
-            self.vel_x = _spd
-            self.facing = 1
-        else:
-            self.vel_x = 0.0
+            direction = 1
+        if direction:
+            self.facing = direction
+        top_speed = MOVE_SPEED * 0.5 if self._shielding else MOVE_SPEED
+        self._steer(direction * top_speed)
 
         if not self.on_ground:
-            self.apply_gravity()
+            self._apply_jump_gravity(inp.held(Action.JUMP))
 
         # Coyote time
         if self.on_ground:
@@ -168,14 +173,13 @@ class Player(Entity):
             self._coyote_timer = 0
             self._jump_buffer  = 0
             self._jumps_left   = 1
+            self._jump_cuttable = True
             get_audio().play_sfx("jump.wav")
         elif inp.pressed(Action.JUMP) and not self.on_ground and self._jumps_left > 0:
             self.vel_y       = JUMP_VEL * 0.85
             self._jumps_left -= 1
+            self._jump_cuttable = True
             get_audio().play_sfx("jump.wav")
-
-        if inp.released(Action.JUMP) and self.vel_y < 0:
-            self.vel_y *= 0.5
 
         _was_on_ground = self.on_ground
         move_and_collide(self, tilemap)
@@ -189,6 +193,36 @@ class Player(Entity):
             self._anim_tick += 1
         else:
             self._anim_tick = 0
+
+    def _steer(self, target: float) -> None:
+        """Move vel_x toward `target` by the ground/air accel, decel or turn rate."""
+        ground = self.on_ground
+        if target == 0.0:
+            rate = RUN_DECEL if ground else AIR_DECEL
+        elif self.vel_x * target < 0:
+            rate = RUN_TURN if ground else AIR_TURN
+        elif abs(self.vel_x) > abs(target):
+            # Above top speed (knockback, shield slowdown): bleed off gently.
+            rate = RUN_DECEL if ground else AIR_DECEL
+        else:
+            rate = RUN_ACCEL if ground else AIR_ACCEL
+        if self.vel_x < target:
+            self.vel_x = min(self.vel_x + rate, target)
+        else:
+            self.vel_x = max(self.vel_x - rate, target)
+
+    def _apply_jump_gravity(self, jump_held: bool) -> None:
+        """Gravity shaped for a readable arc: lighter at the apex while jump is
+        held, heavier after an early release and on the way down."""
+        if self.vel_y < 0 and not jump_held and self._jump_cuttable:
+            g = GRAVITY * JUMP_CUT_GRAVITY_MULT
+        elif abs(self.vel_y) < APEX_HANG_SPEED and jump_held:
+            g = GRAVITY * APEX_GRAVITY_MULT
+        elif self.vel_y >= 0:
+            g = GRAVITY_FALL
+        else:
+            g = GRAVITY
+        self.vel_y = min(self.vel_y + g, PLAYER_MAX_FALL)
 
     def draw(self, surface: pygame.Surface, sx: int, sy: int) -> None:
         if self._hit_timer > 0 and (self._hit_timer // 4) % 2 == 1:

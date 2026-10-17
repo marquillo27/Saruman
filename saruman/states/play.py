@@ -107,6 +107,9 @@ class PlayState(State):
     }
 
     def on_enter(self) -> None:
+        # Also runs when resuming from pause: pick up keys pressed or released
+        # while the pause overlay had the input.
+        self._input.sync_held()
         track = self._LEVEL_MUSIC.get(self._level_path.stem)
         if track:
             get_audio().play_music(track)
@@ -114,8 +117,13 @@ class PlayState(State):
             get_audio().stop_music()
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+        # Alt-Tab away also pauses: key-ups sent to another window never arrive.
+        if (
+            (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE)
+            or event.type == pygame.WINDOWFOCUSLOST
+        ):
             from saruman.states.pause import PauseState
+            self._input.release_all()
             self._game.states.push(PauseState(self._game))
             return
         self._input.handle_event(event)

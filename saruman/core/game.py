@@ -24,6 +24,24 @@ def _make_vignette(w: int, h: int) -> pygame.Surface:
     return surf
 
 
+STEP          = 1.0 / FPS   # fixed simulation step (seconds)
+MAX_STEPS     = 5           # cap catch-up steps per frame (avoids a death spiral)
+_STEP_EPSILON = 0.001       # absorbs Clock.tick()'s whole-millisecond rounding
+
+
+def fixed_steps(acc: float, frame_dt: float) -> tuple[int, float]:
+    """Add one frame's elapsed time to the accumulator and return how many fixed
+    simulation steps to run plus the leftover time. A long stall (dragging the
+    window, a breakpoint) runs at most MAX_STEPS and drops the rest, so the game
+    slows down briefly instead of fast-forwarding."""
+    acc  += min(frame_dt, STEP * MAX_STEPS)
+    steps = 0
+    while acc >= STEP - _STEP_EPSILON and steps < MAX_STEPS:
+        acc   -= STEP
+        steps += 1
+    return steps, acc
+
+
 def _make_scanlines(w: int, h: int) -> pygame.Surface:
     surf = pygame.Surface((w, h), pygame.SRCALPHA)
     surf.fill((0, 0, 0, 0))
@@ -75,8 +93,10 @@ class Game:
         from saruman.states.menu import MenuState
         self._states.push(MenuState(self))
 
+        acc   = 0.0
+        frame = 0
         while self._running and not self._states.is_empty():
-            dt = min(self._clock.tick(FPS) / 1000.0, 0.05)
+            steps, acc = fixed_steps(acc, self._clock.tick(FPS) / 1000.0)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -84,7 +104,15 @@ class Game:
                 else:
                     self._states.handle_event(event)
 
-            self._states.update(dt)
+            # Simulation always advances in whole 1/60 s steps, so movement,
+            # jumps and frame-counted timers behave the same at any frame rate.
+            for _ in range(steps):
+                self._states.update(STEP)
+                if self._shake > 0:
+                    self._shake -= 1
+                if self._states.is_empty():
+                    break
+
             self._canvas.fill((0, 0, 0))
             self._states.draw(self._canvas)
 
@@ -95,13 +123,14 @@ class Game:
             if self._shake > 0:
                 ox = random.randint(-3, 3) * 2
                 oy = random.randint(-2, 2) * 2
-                self._shake -= 1
                 self._window.fill((0, 0, 0))
                 self._window.blit(self._scaled, (ox, oy))
             else:
                 self._window.blit(self._scaled, (0, 0))
 
             pygame.display.flip()
-            pygame.display.set_caption(f"{TITLE}  |  {self._clock.get_fps():.0f} fps")
+            frame += 1
+            if frame % FPS == 0:    # once a second; set_caption is slow on Windows
+                pygame.display.set_caption(f"{TITLE}  |  {self._clock.get_fps():.0f} fps")
 
         pygame.quit()

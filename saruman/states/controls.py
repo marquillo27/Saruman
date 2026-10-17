@@ -20,7 +20,7 @@ _SECTIONS = [
     ("MENU / SYSTEM", [
         ("Pause",             "Esc"),
         ("Resume",            "Esc  (while paused)"),
-        ("Quit to menu",      "Enter  (while paused)"),
+        ("Pause menu",        "↑ ↓  choose,  Enter  confirm"),
     ]),
 ]
 

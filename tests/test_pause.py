@@ -74,21 +74,46 @@ def test_escape_leaves_play_on_stack(game, paused):
 
 
 # ---------------------------------------------------------------------------
-# Quit to menu (ENTER pops pause + play)
+# Menu navigation
 # ---------------------------------------------------------------------------
 
-def test_enter_quits_to_empty_stack(game, paused):
+def _select(ps, index: int) -> None:
+    for _ in range(index):
+        ps.handle_event(_key_event(pygame.K_DOWN))
+
+
+@pytest.mark.parametrize("key", [pygame.K_RETURN, pygame.K_SPACE, pygame.K_z])
+def test_confirm_on_default_item_resumes(game, paused, key):
+    # Opens on RESUME, so a habitual jump press can never quit the run.
+    paused.handle_event(_key_event(key))
+    assert isinstance(game.states.current, _SentinelPlay)
+
+
+def test_quit_to_menu_pops_pause_and_play(game, paused):
+    _select(paused, 3)
     paused.handle_event(_key_event(pygame.K_RETURN))
     assert game.states.is_empty()
 
 
-@pytest.mark.parametrize("key", [pygame.K_RETURN, pygame.K_SPACE, pygame.K_z])
-def test_confirm_keys_quit_to_menu(game, key):
-    game.states._stack.append(_SentinelPlay())
-    ps = PauseState(game)
-    game.states._stack.append(ps)
-    ps.handle_event(_key_event(key))
-    assert game.states.is_empty()
+def test_cursor_wraps_around(paused):
+    paused.handle_event(_key_event(pygame.K_UP))
+    assert paused._cursor == 3
+
+
+def test_settings_item_opens_settings(game, paused):
+    from saruman.states.settings import SettingsState
+    _select(paused, 1)
+    paused.handle_event(_key_event(pygame.K_RETURN))
+    assert isinstance(game.states.current, SettingsState)
+
+
+def test_controls_item_opens_controls_and_returns(game, paused):
+    from saruman.states.controls import ControlsState
+    _select(paused, 2)
+    paused.handle_event(_key_event(pygame.K_RETURN))
+    assert isinstance(game.states.current, ControlsState)
+    game.states.pop()
+    assert game.states.current is paused
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +121,7 @@ def test_confirm_keys_quit_to_menu(game, key):
 # ---------------------------------------------------------------------------
 
 def test_other_key_does_nothing(game, paused):
-    paused.handle_event(_key_event(pygame.K_LEFT))
+    paused.handle_event(_key_event(pygame.K_j))
     assert game.states.current is paused
 
 

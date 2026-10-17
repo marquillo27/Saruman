@@ -52,6 +52,21 @@ class Input:
                 self._held.discard(action)
                 self._released.add(action)
 
+    def sync_held(self) -> None:
+        """Rebuild held actions from the real keyboard state. Call when this Input
+        regains focus (e.g. resuming from pause): key releases that happened while
+        another state was on top never reached us and would leave keys stuck."""
+        keys = pygame.key.get_pressed()
+        self._held = {action for key, action in _KEYMAP.items() if keys[key]}
+        self._pressed.clear()
+        self._released.clear()
+
+    def release_all(self) -> None:
+        """Forget every held key (e.g. when the window loses focus)."""
+        self._held.clear()
+        self._pressed.clear()
+        self._released.clear()
+
     def clear_frame(self) -> None:
         self._pressed.clear()
         self._released.clear()

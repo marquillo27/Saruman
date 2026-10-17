@@ -122,6 +122,7 @@ class World:
         self._player_dying        = False
         self._player_was_grounded = True
         self._ambient_tick        = 0
+        self._frame               = 0       # world clock for idle animations
         self._dying_enemies: list[tuple[Enemy, int, int]] = []
         self._ambient_cfg         = _BIOME_AMBIENT.get(level_name)
         sky_top, sky_bot          = _BIOME_SKY.get(level_name, (COL_SKY_TOP, COL_SKY_BOT))
@@ -182,6 +183,7 @@ class World:
     def update(self, inp: Input, dt: float) -> None:
         self._damage_flash = False
         self._nuke_flash   = False
+        self._frame       += 1
 
         # Tick the death animation; fire game-over only after it finishes.
         # Player.update() isn't called while dying, so decrement the timer here.
@@ -314,6 +316,7 @@ class World:
         surface.blit(self._bg, (0, 0))
         self._draw_parallax(surface)
         self._tilemap.draw(surface, self._camera.x, self._camera.y)
+        self._draw_exit_beacons(surface)
 
         for inter in self._interactives:
             r = inter.rect
@@ -523,7 +526,7 @@ class World:
     def _check_player_triggers(self) -> None:
         pr = self._player.rect
         for trigger in self._triggers:
-            if trigger.triggered or not pr.colliderect(trigger.rect):
+            if trigger.triggered or not pr.colliderect(trigger.hit_rect):
                 continue
             trigger.triggered = True
             if isinstance(trigger, WarpTrigger):
@@ -621,6 +624,36 @@ class World:
 
         life = random.randint(25, 50)
         self._particles.append(AmbientParticle(x, y, vx, vy, col, life))
+
+    def _draw_exit_beacons(self, surface: pygame.Surface) -> None:
+        """Pulsing golden light over each level exit so players can find it."""
+        pulse = abs((self._frame % 60) - 30) / 30.0          # 1 → 0 → 1
+        for trigger in self._triggers:
+            if not isinstance(trigger, LevelEndTrigger):
+                continue
+            r = trigger.rect
+            sx, sy = self._camera.world_to_screen(r.x, r.y)
+            if not (-r.w < sx < INTERNAL_W + r.w):
+                continue
+            # Beam rises 3 tiles above the zone so it reads from a distance.
+            top_pad = 48
+            beam = pygame.Surface((r.w, r.h + top_pad), pygame.SRCALPHA)
+            for y in range(beam.get_height()):
+                fade = min(1.0, y / top_pad)               # soft top edge
+                a    = int((90 + 80 * pulse) * fade)
+                beam.fill((255, 210, 90, a), (0, y, r.w, 1))
+            beam.fill((255, 245, 190, int(160 + 90 * pulse)), (r.w // 2 - 1, 0, 2, beam.get_height()))
+            surface.blit(beam, (sx, sy - top_pad))
+            # Rising sparks inside the beam
+            for i in range(4):
+                py = sy + r.h - ((self._frame * 2 + i * 23) % (r.h + top_pad))
+                px = sx + 2 + (i * 5) % max(r.w - 4, 1)
+                surface.fill((255, 250, 220), (px, py, 1, 2))
+            # Bobbing arrow above the beam
+            ay = sy - top_pad - 10 + int(3 * pulse)
+            cx = sx + r.w // 2
+            pygame.draw.polygon(surface, (255, 220, 100),
+                                [(cx - 4, ay), (cx + 4, ay), (cx, ay + 5)])
 
     def _draw_parallax(self, surface: pygame.Surface) -> None:
         for layer in self._parallax:
