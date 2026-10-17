@@ -37,6 +37,7 @@ Fight your way through **three biome-distinct worlds** — 12 main levels plus o
 | Melee swing | K or C |
 | Shield / parry | L or Q |
 | Pause menu | Esc |
+| Fullscreen / window | F11 or Alt+Enter |
 
 ## Getting the game
 

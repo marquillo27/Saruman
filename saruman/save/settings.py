@@ -6,7 +6,7 @@ from pathlib import Path
 from saruman.paths import savedir
 
 _FILENAME = "settings.json"
-_DEFAULTS: dict = {"music_volume": 6, "sfx_volume": 5, "fullscreen": False}
+_DEFAULTS: dict = {"music_volume": 6, "sfx_volume": 5, "fullscreen": True}
 
 _current: dict | None = None
 

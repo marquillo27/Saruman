@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import random
+import sys
 
 import numpy as np
 import pygame
@@ -50,11 +52,31 @@ def _make_scanlines(w: int, h: int) -> pygame.Surface:
     return surf
 
 
+def _prepare_display() -> None:
+    """Call before pygame.init(): centre the window, and on Windows opt out of
+    DPI virtualisation so 125 %/150 % desktop scaling doesn't blur the game or
+    shrink fullscreen into a corner of the screen."""
+    os.environ.setdefault("SDL_VIDEO_CENTERED", "1")
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)   # per-monitor aware
+        except (AttributeError, OSError):
+            pass
+
+
 class Game:
+    # SCALED: SDL scales the 960x540 frame to the window/screen, keeps the
+    # aspect ratio and centres it (letterboxing if needed).
+    _WINDOWED   = pygame.SCALED | pygame.RESIZABLE
+    _FULLSCREEN = pygame.SCALED | pygame.FULLSCREEN
+
     def __init__(self) -> None:
+        _prepare_display()
         pygame.init()
         pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-        self._window = pygame.display.set_mode((WINDOW_W, WINDOW_H))
+        self._fullscreen = False
+        self._window = pygame.display.set_mode((WINDOW_W, WINDOW_H), self._WINDOWED)
         pygame.display.set_caption(TITLE)
         self._canvas    = pygame.Surface((INTERNAL_W, INTERNAL_H))
         self._ui        = pygame.Surface((UI_W, UI_H), pygame.SRCALPHA)
@@ -75,7 +97,7 @@ class Game:
         audio.set_music_volume(s["music_volume"])
         audio.set_sfx_volume(s["sfx_volume"])
         if s["fullscreen"]:
-            self._window = pygame.display.set_mode((WINDOW_W, WINDOW_H), pygame.FULLSCREEN)
+            self.set_fullscreen(True)
 
     @property
     def states(self) -> StateStack:
@@ -88,8 +110,19 @@ class Game:
         self._shake = max(self._shake, frames)
 
     def set_fullscreen(self, flag: bool) -> None:
-        flags = pygame.FULLSCREEN if flag else 0
+        if flag == self._fullscreen:
+            return
+        self._fullscreen = flag
+        flags = self._FULLSCREEN if flag else self._WINDOWED
         self._window = pygame.display.set_mode((WINDOW_W, WINDOW_H), flags)
+
+    def toggle_fullscreen(self) -> None:
+        """F11 / Alt+Enter: switch and remember the choice."""
+        from saruman.save import settings as _cfg
+        s = _cfg.get()
+        s["fullscreen"] = not self._fullscreen
+        self.set_fullscreen(s["fullscreen"])
+        _cfg.save()
 
     def run(self) -> None:
         from saruman.states.menu import MenuState
@@ -103,6 +136,11 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._running = False
+                elif event.type == pygame.KEYDOWN and (
+                    event.key == pygame.K_F11
+                    or (event.key == pygame.K_RETURN and event.mod & pygame.KMOD_ALT)
+                ):
+                    self.toggle_fullscreen()
                 else:
                     self._states.handle_event(event)
 

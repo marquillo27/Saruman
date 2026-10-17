@@ -10,7 +10,7 @@ _SECTIONS = [
     ("MOVEMENT", [
         ("Move left / right", "← →  /  A  D"),
         ("Jump",              "Space  /  W  /  Z"),
-        ("Double jump",       "Jump again while airborne"),
+        ("Double / wall jump", "Jump in the air / on a wall"),
     ]),
     ("COMBAT", [
         ("Shoot",             "J  /  X"),
@@ -19,8 +19,7 @@ _SECTIONS = [
     ]),
     ("MENU / SYSTEM", [
         ("Pause",             "Esc"),
-        ("Resume",            "Esc  (while paused)"),
-        ("Pause menu",        "↑ ↓  choose,  Enter  confirm"),
+        ("Fullscreen",        "F11  /  Alt+Enter"),
     ]),
 ]
 
@@ -51,13 +50,13 @@ class ControlsState(State):
         cx = UI_W // 2
 
         title = get_font(12, bold=True).render("CONTROLS", True, COL_GOLD)
-        surface.blit(title, title.get_rect(centerx=cx, top=8))
+        surface.blit(title, title.get_rect(centerx=cx, top=5))
 
         font_h   = get_font(7, bold=True)
         font_lbl = get_font(6)
         font_key = get_font(6, bold=True)
 
-        y = 28
+        y = 24
         col_lbl = cx - 80
         col_key = cx + 4
 
@@ -74,9 +73,9 @@ class ControlsState(State):
                 key = font_key.render(keys,   True, _COL_KEY)
                 surface.blit(lbl, (col_lbl, y))
                 surface.blit(key, (col_key, y))
-                y += 12
+                y += 11
 
-            y += 6   # gap between sections
+            y += 4   # gap between sections
 
         hint = get_font(6).render("Press any key to go back", True, (70, 80, 110))
         surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 5))
