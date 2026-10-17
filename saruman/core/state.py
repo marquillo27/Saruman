@@ -5,6 +5,7 @@ import pygame
 
 class State:
     draws_below: bool = False
+    ui_space:    bool = True    # draw() targets the UI canvas, not the world canvas
 
     def handle_event(self, event: pygame.event.Event) -> None:
         pass
@@ -14,6 +15,11 @@ class State:
 
     def draw(self, surface: pygame.Surface) -> None:
         pass
+
+    def render(self, world: pygame.Surface, ui: pygame.Surface) -> None:
+        """Draw onto the world canvas and/or the UI canvas. Menus and other
+        text screens live in UI space; gameplay states override this."""
+        self.draw(ui if self.ui_space else world)
 
     def on_enter(self) -> None:
         pass
@@ -59,14 +65,19 @@ class StateStack:
         if self.current:
             self.current.update(dt)
 
-    def draw(self, surface: pygame.Surface) -> None:
+    def draw(self, surface: pygame.Surface, ui: pygame.Surface | None = None) -> None:
+        """Draw the visible states. With `ui`, states render to the world and UI
+        canvases; without it everything goes to `surface` (single-canvas use)."""
         visible: list[State] = []
         for state in reversed(self._stack):
             visible.append(state)
             if not state.draws_below:
                 break
         for state in reversed(visible):
-            state.draw(surface)
+            if ui is None:
+                state.draw(surface)
+            else:
+                state.render(surface, ui)
 
     def is_empty(self) -> bool:
         return not self._stack

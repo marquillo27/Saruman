@@ -33,6 +33,7 @@ _BIOME_GRADE = {
 
 class PlayState(State):
     _DMG_FLASH_FRAMES = 9
+    ui_space = False
 
     def __init__(
         self,
@@ -161,6 +162,11 @@ class PlayState(State):
             self._dmg_overlay.set_alpha(self._red_flash * 18)
             surface.blit(self._dmg_overlay, (0, 0))
 
+    def render(self, world: pygame.Surface, ui: pygame.Surface) -> None:
+        self.draw(world)
+        self.draw_hud(ui)
+
+    def draw_hud(self, surface: pygame.Surface) -> None:
         self._hud.draw(
             surface,
             self._world.lives,

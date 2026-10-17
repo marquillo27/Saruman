@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from saruman.config import COL_GOLD, COL_RED, COL_WHITE, INTERNAL_H, INTERNAL_W
+from saruman.config import COL_GOLD, COL_RED, COL_WHITE, UI_H, UI_W
 from saruman.core.audio import get_audio
 from saruman.core.state import State
 from saruman.save import highscores
@@ -56,7 +56,7 @@ class GameOverState(State):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill((5, 5, 15))
-        cx = INTERNAL_W // 2
+        cx = UI_W // 2
 
         # Header
         header = "LEVEL COMPLETE!" if self._won else "GAME OVER"
@@ -77,10 +77,10 @@ class GameOverState(State):
             surface.blit(nm_surf, nm_surf.get_rect(centerx=cx, top=100))
 
             hint = get_font(6).render("ENTER to confirm  BACKSPACE to delete", True, (90, 95, 125))
-            surface.blit(hint, hint.get_rect(centerx=cx, bottom=INTERNAL_H - 5))
+            surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 5))
         else:
             hint = get_font(7).render("Press any key", True, (90, 95, 125))
-            surface.blit(hint, hint.get_rect(centerx=cx, bottom=INTERNAL_H - 5))
+            surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 5))
 
     # ------------------------------------------------------------------
 

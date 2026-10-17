@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pygame
 import pytest
 
-from saruman.config import INTERNAL_H, INTERNAL_W
+from saruman.config import UI_H, UI_W
 from saruman.core.state import StateStack
 from saruman.states.gameover import GameOverState
 
@@ -176,5 +176,5 @@ def test_any_key_advances_when_not_qualifying(game):
 @pytest.mark.parametrize("score,won", [(0, False), (5000, False), (5000, True)])
 def test_draw_does_not_crash(game, score, won):
     go = GameOverState(game, score=score, won=won)
-    surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    surf = pygame.Surface((UI_W, UI_H))
     go.draw(surf)

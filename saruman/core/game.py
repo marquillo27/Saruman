@@ -6,7 +6,7 @@ import numpy as np
 import pygame
 
 from saruman.config import (
-    FPS, INTERNAL_H, INTERNAL_W, TITLE, WINDOW_H, WINDOW_W,
+    FPS, INTERNAL_H, INTERNAL_W, TITLE, UI_H, UI_W, WINDOW_H, WINDOW_W,
 )
 from saruman.core.state import StateStack
 
@@ -57,7 +57,9 @@ class Game:
         self._window = pygame.display.set_mode((WINDOW_W, WINDOW_H))
         pygame.display.set_caption(TITLE)
         self._canvas    = pygame.Surface((INTERNAL_W, INTERNAL_H))
+        self._ui        = pygame.Surface((UI_W, UI_H), pygame.SRCALPHA)
         self._scaled    = pygame.Surface((WINDOW_W, WINDOW_H))
+        self._ui_scaled = pygame.Surface((WINDOW_W, WINDOW_H), pygame.SRCALPHA)
         self._clock     = pygame.time.Clock()
         self._states    = StateStack()
         self._running   = True
@@ -114,9 +116,12 @@ class Game:
                     break
 
             self._canvas.fill((0, 0, 0))
-            self._states.draw(self._canvas)
+            self._ui.fill((0, 0, 0, 0))
+            self._states.draw(self._canvas, self._ui)
 
             pygame.transform.scale(self._canvas, (WINDOW_W, WINDOW_H), self._scaled)
+            pygame.transform.scale(self._ui, (WINDOW_W, WINDOW_H), self._ui_scaled)
+            self._scaled.blit(self._ui_scaled, (0, 0))
             self._scaled.blit(self._vignette,  (0, 0))
             self._scaled.blit(self._scanlines, (0, 0))
 

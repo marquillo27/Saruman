@@ -6,6 +6,7 @@ import pygame
 import pytmx
 
 from saruman.config import INTERNAL_H, INTERNAL_W, TILE_SIZE
+from saruman.world.terrain import render_terrain, skin_for
 
 
 class Tilemap:
@@ -18,6 +19,9 @@ class Tilemap:
             if l.name == "solid" and isinstance(l, pytmx.TiledTileLayer)
         )
         self._solid_grid = self._build_solid_grid()
+        # Painted lazily on first draw (needs pygame display for convert_alpha).
+        self._skin    = skin_for(tmx_path.stem)
+        self._terrain: pygame.Surface | None = None
 
     def _build_solid_grid(self) -> list[list[bool]]:
         return [
@@ -52,6 +56,15 @@ class Tilemap:
         return self._solid_grid[ty][tx]
 
     def draw(self, surface: pygame.Surface, camera_x: float, camera_y: float) -> None:
+        """Blit the pre-painted biome terrain under the camera."""
+        if self._terrain is None:
+            self._terrain = render_terrain(self._solid_grid, self._skin)
+            if pygame.display.get_surface():
+                self._terrain = self._terrain.convert_alpha()
+        surface.blit(self._terrain, (-int(camera_x), -int(camera_y)))
+
+    def draw_tmx_tiles(self, surface: pygame.Surface, camera_x: float, camera_y: float) -> None:
+        """Original renderer using the .tmx tileset images (kept for tools)."""
         left   = max(0, int(camera_x) // TILE_SIZE)
         right  = min(self._width,  int(camera_x + INTERNAL_W) // TILE_SIZE + 2)
         top    = max(0, int(camera_y) // TILE_SIZE)

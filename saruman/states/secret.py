@@ -5,7 +5,7 @@ from typing import Callable
 
 import pygame
 
-from saruman.config import COL_GOLD, COL_WHITE, INTERNAL_H, INTERNAL_W
+from saruman.config import COL_GOLD, COL_WHITE, UI_H, UI_W
 from saruman.core.state import State
 from saruman.ui.theme import get_font
 from saruman.world.particle import Particle, burst
@@ -28,7 +28,7 @@ class SecretState(State):
 
         if self._frame % 10 == 0:
             self._particles.extend(
-                burst(INTERNAL_W // 2, INTERNAL_H // 2, COL_GOLD, count=8, speed=2.5)
+                burst(UI_W // 2, UI_H // 2, COL_GOLD, count=8, speed=2.5)
             )
 
         for p in self._particles:
@@ -53,7 +53,7 @@ class SecretState(State):
         big  = get_font(14, bold=True).render("SECRET FOUND!", True, (r, g, b))
         hint = get_font(6).render("A hidden path has been revealed...", True, COL_WHITE)
 
-        cx = INTERNAL_W // 2
-        cy = INTERNAL_H // 2
+        cx = UI_W // 2
+        cy = UI_H // 2
         surface.blit(big,  big.get_rect(centerx=cx, centery=cy - 8))
         surface.blit(hint, hint.get_rect(centerx=cx, centery=cy + 12))

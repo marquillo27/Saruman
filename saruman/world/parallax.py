@@ -4,9 +4,13 @@ import math
 
 import pygame
 
-from saruman.config import INTERNAL_H, INTERNAL_W
+from saruman.config import INTERNAL_W
+from saruman.paths import asset_path
 
 _COLORKEY = (255, 0, 255)
+# Silhouettes were authored for the old 180 px tall view; they are drawn
+# bottom-aligned, so the taller 270 px view shows more sky above them.
+_SIL_H = 180
 
 
 class ParallaxLayer:
@@ -16,14 +20,15 @@ class ParallaxLayer:
 
     def draw(self, target: pygame.Surface, camera_x: float) -> None:
         w      = self._surf.get_width()
+        y      = target.get_height() - self._surf.get_height()   # bottom-aligned
         offset = int(camera_x * self._factor) % w
-        target.blit(self._surf, (-offset, 0))
+        target.blit(self._surf, (-offset, y))
         if offset > 0:
-            target.blit(self._surf, (w - offset, 0))
+            target.blit(self._surf, (w - offset, y))
 
 
 def _surf() -> pygame.Surface:
-    s = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    s = pygame.Surface((INTERNAL_W, _SIL_H))
     s.fill(_COLORKEY)
     s.set_colorkey(_COLORKEY)
     return s
@@ -36,11 +41,11 @@ def _surf() -> pygame.Surface:
 def _greenshire_far() -> pygame.Surface:
     s = _surf()
     col = (45, 90, 55)
-    pts = [(0, INTERNAL_H)]
+    pts = [(0, _SIL_H)]
     for x in range(INTERNAL_W + 1):
         y = 130 - int(18 * math.sin(x * 2 * math.pi / INTERNAL_W * 4))
         pts.append((x, y))
-    pts.append((INTERNAL_W, INTERNAL_H))
+    pts.append((INTERNAL_W, _SIL_H))
     pygame.draw.polygon(s, col, pts)
     return s
 
@@ -96,7 +101,7 @@ def _mines_mid() -> pygame.Surface:
     for tx in range(0, INTERNAL_W, 16):
         h = 12 + (tx % 3) * 6
         pygame.draw.polygon(s, col, [
-            (tx, INTERNAL_H), (tx + 8, INTERNAL_H - h), (tx + 16, INTERNAL_H),
+            (tx, _SIL_H), (tx + 8, _SIL_H - h), (tx + 16, _SIL_H),
         ])
     return s
 
@@ -106,9 +111,9 @@ def _marshes_far() -> pygame.Surface:
     col = (28, 24, 32)
     for tx in range(0, INTERNAL_W, 36):
         h = 30 + (tx % 5) * 8
-        pygame.draw.rect(s, col, (tx + 14, INTERNAL_H - h, 8, h))
-        pygame.draw.line(s, col, (tx + 18, INTERNAL_H - h + 10), (tx + 30, INTERNAL_H - h), 2)
-        pygame.draw.line(s, col, (tx + 18, INTERNAL_H - h + 10), (tx + 4,  INTERNAL_H - h - 4), 2)
+        pygame.draw.rect(s, col, (tx + 14, _SIL_H - h, 8, h))
+        pygame.draw.line(s, col, (tx + 18, _SIL_H - h + 10), (tx + 30, _SIL_H - h), 2)
+        pygame.draw.line(s, col, (tx + 18, _SIL_H - h + 10), (tx + 4,  _SIL_H - h - 4), 2)
     return s
 
 
@@ -140,7 +145,7 @@ def _tower_mid() -> pygame.Surface:
     s = _surf()
     col = (40, 38, 55)
     for tx in range(0, INTERNAL_W, 64):
-        pygame.draw.rect(s, col, (tx, 120, 48, INTERNAL_H - 120))
+        pygame.draw.rect(s, col, (tx, 120, 48, _SIL_H - 120))
         for bx in range(tx, tx + 48, 8):
             pygame.draw.rect(s, col, (bx, 112, 6, 10))
     return s
@@ -153,8 +158,8 @@ def _catacombs_far() -> pygame.Surface:
     # Draw periodic arch + pillar shapes
     for tx in range(0, INTERNAL_W, 48):
         # Pillar pair
-        pygame.draw.rect(s, col, (tx,      80, 8, INTERNAL_H - 80))
-        pygame.draw.rect(s, col, (tx + 38, 80, 8, INTERNAL_H - 80))
+        pygame.draw.rect(s, col, (tx,      80, 8, _SIL_H - 80))
+        pygame.draw.rect(s, col, (tx + 38, 80, 8, _SIL_H - 80))
         # Arch keystone
         pygame.draw.rect(s, col, (tx + 4,  72, 36, 10))
         pygame.draw.rect(s, col, (tx + 10, 66, 24, 8))
@@ -169,7 +174,7 @@ def _catacombs_mid() -> pygame.Surface:
     # Floor rubble blocks
     for tx in range(0, INTERNAL_W, 28):
         h = 8 + (tx % 3) * 4
-        pygame.draw.rect(s, col, (tx, INTERNAL_H - h, 26, h))
+        pygame.draw.rect(s, col, (tx, _SIL_H - h, 26, h))
     # Ceiling stalactites
     for tx in range(0, INTERNAL_W, 22):
         h = 6 + (tx % 4) * 3
@@ -184,7 +189,7 @@ def _bridge_far() -> pygame.Surface:
     # Distant cliff tops
     for tx in range(0, INTERNAL_W, 38):
         h = 28 + (tx % 5) * 6
-        pygame.draw.rect(s, col, (tx, INTERNAL_H - 80, 38, h))
+        pygame.draw.rect(s, col, (tx, _SIL_H - 80, 38, h))
     # Broken bridge arches further back
     arch_col = (75, 48, 42)
     for tx in range(0, INTERNAL_W, 70):
@@ -202,7 +207,7 @@ def _bridge_mid() -> pygame.Surface:
     rope = (110, 78, 55)
     for tx in range(0, INTERNAL_W, 32):
         # Snapped pillar
-        pygame.draw.rect(s, col, (tx + 8, 120, 8, INTERNAL_H - 120))
+        pygame.draw.rect(s, col, (tx + 8, 120, 8, _SIL_H - 120))
         pygame.draw.rect(s, col, (tx + 6, 116, 12, 6))
         # Sagging rope between pillars
         for px in range(tx + 16, tx + 32):
@@ -217,7 +222,7 @@ def _spires_far() -> pygame.Surface:
     rock = (70, 90, 130)
     snow = (210, 220, 240)
     for tx in range(0, INTERNAL_W, 56):
-        base_y = INTERNAL_H - 20
+        base_y = _SIL_H - 20
         peak_y = 40 + (tx % 4) * 6
         pygame.draw.polygon(s, rock, [
             (tx - 8, base_y), (tx + 28, peak_y), (tx + 64, base_y),
@@ -244,7 +249,7 @@ def _spires_mid() -> pygame.Surface:
     spire = (60, 78, 110)
     for tx in range(0, INTERNAL_W, 80):
         pygame.draw.polygon(s, spire, [
-            (tx + 6, INTERNAL_H), (tx + 22, 110), (tx + 38, INTERNAL_H),
+            (tx + 6, _SIL_H), (tx + 22, 110), (tx + 38, _SIL_H),
         ])
     return s
 
@@ -257,20 +262,20 @@ def _throne_far() -> pygame.Surface:
     # Gothic pillars with crumbled tops
     for tx in range(0, INTERNAL_W, 60):
         h = 70 + (tx % 4) * 12
-        pygame.draw.rect(s, col_stone, (tx + 22, INTERNAL_H - h, 16, h))
+        pygame.draw.rect(s, col_stone, (tx + 22, _SIL_H - h, 16, h))
         # Crumble notches at top
-        pygame.draw.rect(s, col_stone, (tx + 18, INTERNAL_H - h, 8, 8))
-        pygame.draw.rect(s, col_stone, (tx + 30, INTERNAL_H - h - 4, 8, 8))
+        pygame.draw.rect(s, col_stone, (tx + 18, _SIL_H - h, 8, 8))
+        pygame.draw.rect(s, col_stone, (tx + 30, _SIL_H - h - 4, 8, 8))
         # Arch span
-        pygame.draw.rect(s, col_stone, (tx + 10, INTERNAL_H - h + 4, 40, 6))
+        pygame.draw.rect(s, col_stone, (tx + 10, _SIL_H - h + 4, 40, 6))
     # Lava glow along the bottom third
-    for y in range(INTERNAL_H - 50, INTERNAL_H):
-        intensity = int(60 * (y - (INTERNAL_H - 50)) / 50)
+    for y in range(_SIL_H - 50, _SIL_H):
+        intensity = int(60 * (y - (_SIL_H - 50)) / 50)
         pygame.draw.line(s, (intensity, intensity // 3, 0),
                          (0, y), (INTERNAL_W, y))
     # Lava pools — bright orange blobs
     for tx in range(0, INTERNAL_W, 44):
-        pygame.draw.ellipse(s, col_lava, (tx + 8, INTERNAL_H - 14, 28, 8))
+        pygame.draw.ellipse(s, col_lava, (tx + 8, _SIL_H - 14, 28, 8))
     return s
 
 
@@ -282,9 +287,9 @@ def _throne_mid() -> pygame.Surface:
     col_smoke = (160, 80, 40)
     # Stone wall slabs
     for tx in range(0, INTERNAL_W, 20):
-        pygame.draw.rect(s, col_wall, (tx, 100, 18, INTERNAL_H - 100))
+        pygame.draw.rect(s, col_wall, (tx, 100, 18, _SIL_H - 100))
         # Mortar joints
-        for ty in range(100, INTERNAL_H, 12):
+        for ty in range(100, _SIL_H, 12):
             pygame.draw.line(s, (50, 22, 12), (tx, ty), (tx + 18, ty))
     # Torch sconces
     for tx in range(10, INTERNAL_W, 40):
@@ -304,12 +309,12 @@ def _ashfall_far() -> pygame.Surface:
     """Far rolling ash dunes under a pale, dust-choked sky — muted grey-violet."""
     s = _surf()
     col = (52, 46, 56)
-    pts = [(0, INTERNAL_H)]
+    pts = [(0, _SIL_H)]
     for x in range(INTERNAL_W + 1):
         y = 120 - int(10 * math.sin(x * 2 * math.pi / INTERNAL_W * 3)) \
                 - int(5 * math.sin(x * 2 * math.pi / INTERNAL_W * 7))
         pts.append((x, y))
-    pts.append((INTERNAL_W, INTERNAL_H))
+    pts.append((INTERNAL_W, _SIL_H))
     pygame.draw.polygon(s, col, pts)
     # Faint distant ash plumes
     plume = (64, 56, 66)
@@ -325,10 +330,10 @@ def _ashfall_mid() -> pygame.Surface:
     bark = (46, 40, 48)
     for tx in range(0, INTERNAL_W, 46):
         # Ash drift mound
-        pygame.draw.ellipse(s, col, (tx, INTERNAL_H - 16, 40, 24))
+        pygame.draw.ellipse(s, col, (tx, _SIL_H - 16, 40, 24))
         # Bare dead tree
         trunk_x = tx + 26
-        pygame.draw.rect(s, bark, (trunk_x, 116, 4, INTERNAL_H - 116))
+        pygame.draw.rect(s, bark, (trunk_x, 116, 4, _SIL_H - 116))
         pygame.draw.line(s, bark, (trunk_x + 2, 124), (trunk_x + 12, 112), 2)
         pygame.draw.line(s, bark, (trunk_x + 2, 130), (trunk_x - 8, 120), 2)
         pygame.draw.line(s, bark, (trunk_x + 2, 118), (trunk_x + 8, 106), 1)
@@ -346,12 +351,12 @@ def _cinderwood_far() -> pygame.Surface:
     for tx in range(0, INTERNAL_W, 34):
         h = 70 + (tx % 4) * 10
         trunk_x = tx + 14
-        pygame.draw.rect(s, col, (trunk_x, INTERNAL_H - h, 6, h))
+        pygame.draw.rect(s, col, (trunk_x, _SIL_H - h, 6, h))
         # A couple of broken limbs
-        pygame.draw.line(s, col, (trunk_x + 3, INTERNAL_H - h + 14),
-                         (trunk_x + 16, INTERNAL_H - h + 2), 2)
-        pygame.draw.line(s, col, (trunk_x + 3, INTERNAL_H - h + 24),
-                         (trunk_x - 10, INTERNAL_H - h + 12), 2)
+        pygame.draw.line(s, col, (trunk_x + 3, _SIL_H - h + 14),
+                         (trunk_x + 16, _SIL_H - h + 2), 2)
+        pygame.draw.line(s, col, (trunk_x + 3, _SIL_H - h + 24),
+                         (trunk_x - 10, _SIL_H - h + 12), 2)
     return s
 
 
@@ -362,13 +367,13 @@ def _cinderwood_mid() -> pygame.Surface:
     ember = (150, 56, 20)
     for tx in range(0, INTERNAL_W, 40):
         # Broken stump
-        pygame.draw.rect(s, col, (tx + 12, INTERNAL_H - 40, 12, 40))
+        pygame.draw.rect(s, col, (tx + 12, _SIL_H - 40, 12, 40))
         pygame.draw.polygon(s, col, [
-            (tx + 12, INTERNAL_H - 40), (tx + 18, INTERNAL_H - 52),
-            (tx + 24, INTERNAL_H - 40),
+            (tx + 12, _SIL_H - 40), (tx + 18, _SIL_H - 52),
+            (tx + 24, _SIL_H - 40),
         ])
         # Ember glow pooled at the base
-        pygame.draw.ellipse(s, ember, (tx + 10, INTERNAL_H - 8, 18, 6))
+        pygame.draw.ellipse(s, ember, (tx + 10, _SIL_H - 8, 18, 6))
     return s
 
 
@@ -385,10 +390,10 @@ def _emberfall_far() -> pygame.Surface:
     # Broken battlements
     for tx in range(0, INTERNAL_W, 50):
         h = 64 + (tx % 4) * 10
-        pygame.draw.rect(s, col_stone, (tx + 14, INTERNAL_H - h, 22, h))
+        pygame.draw.rect(s, col_stone, (tx + 14, _SIL_H - h, 22, h))
         # Crenellations
         for bx in range(tx + 14, tx + 36, 8):
-            pygame.draw.rect(s, col_stone, (bx, INTERNAL_H - h - 6, 5, 8))
+            pygame.draw.rect(s, col_stone, (bx, _SIL_H - h - 6, 5, 8))
     # Distant flame plumes
     for tx in range(0, INTERNAL_W, 80):
         pygame.draw.ellipse(s, glow, (tx + 30, 96, 18, 26))
@@ -404,17 +409,17 @@ def _emberfall_mid() -> pygame.Surface:
     for tx in range(0, INTERNAL_W, 24):
         # Ruined wall block of varying height
         h = 40 + (tx % 3) * 18
-        pygame.draw.rect(s, col_wall, (tx, INTERNAL_H - h, 20, h))
+        pygame.draw.rect(s, col_wall, (tx, _SIL_H - h, 20, h))
         # Mortar joints
-        for ty in range(INTERNAL_H - h, INTERNAL_H, 12):
+        for ty in range(_SIL_H - h, _SIL_H, 12):
             pygame.draw.line(s, (40, 18, 14), (tx, ty), (tx + 20, ty))
     # Torch fires perched on the walls
     for tx in range(12, INTERNAL_W, 48):
-        pygame.draw.rect(s, col_fire, (tx, INTERNAL_H - 70, 8, 10))
-        pygame.draw.rect(s, (255, 200, 90), (tx + 2, INTERNAL_H - 68, 4, 5))
+        pygame.draw.rect(s, col_fire, (tx, _SIL_H - 70, 8, 10))
+        pygame.draw.rect(s, (255, 200, 90), (tx + 2, _SIL_H - 68, 4, 5))
         # Smoke wisps
         for i in range(3):
-            wy = INTERNAL_H - 74 - i * 5
+            wy = _SIL_H - 74 - i * 5
             pygame.draw.rect(s, col_smoke, (tx + 2 + (i % 2), wy, 3, 4))
     return s
 
@@ -432,12 +437,12 @@ def _frostkeep_far() -> pygame.Surface:
     # Frozen battlements
     for tx in range(0, INTERNAL_W, 50):
         h = 64 + (tx % 4) * 10
-        pygame.draw.rect(s, col_stone, (tx + 14, INTERNAL_H - h, 22, h))
+        pygame.draw.rect(s, col_stone, (tx + 14, _SIL_H - h, 22, h))
         # Crenellations
         for bx in range(tx + 14, tx + 36, 8):
-            pygame.draw.rect(s, col_stone, (bx, INTERNAL_H - h - 6, 5, 8))
+            pygame.draw.rect(s, col_stone, (bx, _SIL_H - h - 6, 5, 8))
         # Ice cap on the rampart top
-        pygame.draw.rect(s, (200, 225, 245), (tx + 14, INTERNAL_H - h - 8, 22, 3))
+        pygame.draw.rect(s, (200, 225, 245), (tx + 14, _SIL_H - h - 8, 22, 3))
     # Distant frost plumes
     for tx in range(0, INTERNAL_W, 80):
         pygame.draw.ellipse(s, glow, (tx + 30, 96, 18, 26))
@@ -453,23 +458,23 @@ def _frostkeep_mid() -> pygame.Surface:
     for tx in range(0, INTERNAL_W, 24):
         # Ice-rimed wall block of varying height
         h = 40 + (tx % 3) * 18
-        pygame.draw.rect(s, col_wall, (tx, INTERNAL_H - h, 20, h))
+        pygame.draw.rect(s, col_wall, (tx, _SIL_H - h, 20, h))
         # Mortar joints
-        for ty in range(INTERNAL_H - h, INTERNAL_H, 12):
+        for ty in range(_SIL_H - h, _SIL_H, 12):
             pygame.draw.line(s, (28, 40, 60), (tx, ty), (tx + 20, ty))
         # Icicles hanging from the top edge
         for ix in range(tx + 3, tx + 20, 6):
             pygame.draw.polygon(s, col_ice, [
-                (ix, INTERNAL_H - h), (ix + 2, INTERNAL_H - h),
-                (ix + 1, INTERNAL_H - h + 6),
+                (ix, _SIL_H - h), (ix + 2, _SIL_H - h),
+                (ix + 1, _SIL_H - h + 6),
             ])
     # Cold blue braziers perched on the walls
     for tx in range(12, INTERNAL_W, 48):
-        pygame.draw.rect(s, col_fire, (tx, INTERNAL_H - 70, 8, 10))
-        pygame.draw.rect(s, (210, 240, 255), (tx + 2, INTERNAL_H - 68, 4, 5))
+        pygame.draw.rect(s, col_fire, (tx, _SIL_H - 70, 8, 10))
+        pygame.draw.rect(s, (210, 240, 255), (tx + 2, _SIL_H - 68, 4, 5))
         # Frost wisps
         for i in range(3):
-            wy = INTERNAL_H - 74 - i * 5
+            wy = _SIL_H - 74 - i * 5
             pygame.draw.rect(s, (90, 130, 170), (tx + 2 + (i % 2), wy, 3, 4))
     return s
 
@@ -495,6 +500,41 @@ _BIOME_LAYERS: dict[str, list[tuple]] = {
 }
 
 
+# Painted backgrounds (generated with ComfyUI, see tools/process_backgrounds.py)
+# replace the procedural silhouettes, which look crude in front of them.
+_PAINTED_FACTOR = 0.05
+
+_PAINTED: dict[str, str] = {
+    "level_01_greenshire_hills":    "greenwood_valley",
+    "level_02_wolfwood":            "greenwood_dusk",
+    "level_03_glass_caverns":       "glass_caverns",
+    "level_04_sunken_mines":        "greenwood_mountains",
+    "level_05_ash_marshes":         "ash_marshes",
+    "level_06_pale_tower":          "pale_tower",
+    "level_07_cursed_catacombs":    "catacombs",
+    "level_08_forsaken_bridge":     "bridge",
+    "level_09_skybound_spires":     "skybound",
+    "level_10_goblin_kings_throne": "throne",
+    "level_11_ashfall_wastes":      "ashfall",
+    "level_12_cinderwood_remains":  "cinderwood",
+    "level_13_emberfall_keep":      "emberfall",
+}
+
+
+def _load_painted(level_name: str) -> pygame.Surface | None:
+    name = _PAINTED.get(level_name)
+    if not name:
+        return None
+    path = asset_path("backgrounds", f"{name}.png")
+    if not path.exists():
+        return None
+    surf = pygame.image.load(str(path))
+    return surf.convert() if pygame.display.get_surface() else surf
+
+
 def make_parallax_layers(level_name: str) -> list[ParallaxLayer]:
     entries = _BIOME_LAYERS.get(level_name, _BIOME_LAYERS["level_02_wolfwood"])
-    return [ParallaxLayer(fn(), factor) for fn, factor in entries]
+    painted = _load_painted(level_name)
+    if painted is None:
+        return [ParallaxLayer(fn(), factor) for fn, factor in entries]
+    return [ParallaxLayer(painted, _PAINTED_FACTOR)]

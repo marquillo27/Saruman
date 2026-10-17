@@ -88,6 +88,9 @@ class Enemy(Entity):
         """Return item instances to place at this enemy's position on kill."""
         return []
 
+    def on_player_contact(self) -> None:
+        """Called when this enemy touches the player (hurting them or not)."""
+
     def on_stomped(self) -> bool:
         """Return True if the enemy was just killed."""
         self.alive = False
@@ -359,8 +362,11 @@ class CaveBat(Enemy):
     score_value    = 150
     can_be_stomped = False
     AGGRO_RANGE    = 90
-    AGGRO_SPEED    = 2.5
+    AGGRO_SPEED    = 1.5    # well below the player's run speed: outrunnable
+    AGGRO_ACCEL    = 0.06   # steering lag, so it overshoots and can be dodged
     PATROL_SPEED   = 0.7
+    RETREAT_FRAMES = 75     # backs off after touching the player
+    RETREAT_SPEED  = 1.2
 
     def __init__(self, x: float, y: float, patrol_w: float = 70.0) -> None:
         super().__init__(x, y, self.W, self.H)
@@ -370,10 +376,27 @@ class CaveBat(Enemy):
         self._time      = 0.0
         self._anim_tick = 0
         self._aggro     = False
+        self._retreat   = 0
+        self._vx        = 0.0
+        self._vy        = 0.0
+
+    def on_player_contact(self) -> None:
+        self._retreat = self.RETREAT_FRAMES
 
     def update(self, tilemap, dt: float, player_rect=None) -> None:
         self._time += dt
         self.on_ground = False
+
+        if self._retreat > 0 and player_rect:
+            # Fly up and away from the player, then resume the hunt.
+            self._retreat -= 1
+            away = 1 if self.rect.centerx >= player_rect.centerx else -1
+            self.x += away * self.RETREAT_SPEED
+            self.y -= self.RETREAT_SPEED * 0.6
+            self._vx = self._vy = 0.0
+            self.facing = away
+            self._anim_tick += 1
+            return
 
         if player_rect:
             dx = player_rect.centerx - self.rect.centerx
@@ -386,9 +409,12 @@ class CaveBat(Enemy):
             dx   = player_rect.centerx - self.rect.centerx
             dy   = player_rect.centery  - self.rect.centery
             dist = max(1.0, (dx ** 2 + dy ** 2) ** 0.5)
-            self.x += (dx / dist) * self.AGGRO_SPEED
-            self.y += (dy / dist) * self.AGGRO_SPEED
-            self.facing = 1 if dx > 0 else -1
+            # Steer the velocity toward the player instead of homing perfectly.
+            self._vx += ((dx / dist) * self.AGGRO_SPEED - self._vx) * self.AGGRO_ACCEL
+            self._vy += ((dy / dist) * self.AGGRO_SPEED - self._vy) * self.AGGRO_ACCEL
+            self.x += self._vx
+            self.y += self._vy
+            self.facing = 1 if self._vx > 0 else -1
         else:
             self.x += self.PATROL_SPEED * self.facing
             if self.x > self._spawn_x + self._patrol_w:

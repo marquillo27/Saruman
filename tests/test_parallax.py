@@ -41,9 +41,25 @@ def _pygame():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("level", ALL_LEVELS)
-def test_known_level_returns_two_layers(level):
+def test_known_level_returns_layers(level):
     layers = make_parallax_layers(level)
-    assert len(layers) == 2
+    assert 1 <= len(layers) <= 2
+
+
+@pytest.mark.parametrize("level", ALL_LEVELS)
+def test_painted_background_is_single_seamless_layer(level):
+    from saruman.config import INTERNAL_H, INTERNAL_W
+    from saruman.world.parallax import _load_painted
+    if _load_painted(level) is None:
+        pytest.skip("no painted backdrop for this level yet")
+    (layer,) = make_parallax_layers(level)
+    assert layer._surf.get_size() == (INTERNAL_W * 2, INTERNAL_H)
+
+
+def test_painted_backdrop_falls_back_to_silhouettes(monkeypatch):
+    import saruman.world.parallax as par
+    monkeypatch.setattr(par, "_load_painted", lambda name: None)
+    assert len(par.make_parallax_layers("level_01_greenshire_hills")) == 2
 
 
 def test_unknown_level_falls_back_to_two_layers():
@@ -61,10 +77,12 @@ def test_layers_are_parallax_layer_instances():
 # Scroll factors
 # ---------------------------------------------------------------------------
 
-def test_far_layer_scrolls_slower_than_mid_layer():
-    """First layer (far) must have a smaller factor than second (mid)."""
+def test_far_layer_scrolls_slower_than_mid_layer(monkeypatch):
+    """Silhouette fallback: first layer (far) is slower than the second (mid)."""
+    import saruman.world.parallax as par
+    monkeypatch.setattr(par, "_load_painted", lambda name: None)
     for level in ALL_LEVELS:
-        layers = make_parallax_layers(level)
+        layers = par.make_parallax_layers(level)
         assert layers[0]._factor < layers[1]._factor, (
             f"{level}: far factor {layers[0]._factor} >= mid factor {layers[1]._factor}"
         )
@@ -84,14 +102,14 @@ def test_layer_surfaces_are_correct_width():
     from saruman.config import INTERNAL_W
     for level in ALL_LEVELS:
         for layer in make_parallax_layers(level):
-            assert layer._surf.get_width() == INTERNAL_W
+            assert layer._surf.get_width() in (INTERNAL_W, INTERNAL_W * 2)
 
 
-def test_layer_surfaces_are_correct_height():
+def test_layer_surfaces_fit_the_view_height():
     from saruman.config import INTERNAL_H
     for level in ALL_LEVELS:
         for layer in make_parallax_layers(level):
-            assert layer._surf.get_height() == INTERNAL_H
+            assert layer._surf.get_height() <= INTERNAL_H
 
 
 # ---------------------------------------------------------------------------
@@ -125,13 +143,13 @@ def test_each_biome_draws_without_error(level):
 # New Frozen North silhouette (Night King finale)
 # ---------------------------------------------------------------------------
 
-def test_frostkeep_silhouettes_render_at_internal_size():
-    from saruman.config import INTERNAL_W, INTERNAL_H
-    from saruman.world.parallax import _frostkeep_far, _frostkeep_mid
+def test_frostkeep_silhouettes_render_at_silhouette_size():
+    from saruman.config import INTERNAL_W
+    from saruman.world.parallax import _SIL_H, _frostkeep_far, _frostkeep_mid
     for fn in (_frostkeep_far, _frostkeep_mid):
         surf = fn()
         assert surf.get_width()  == INTERNAL_W
-        assert surf.get_height() == INTERNAL_H
+        assert surf.get_height() == _SIL_H
 
 
 def test_emberfall_finale_uses_frostkeep_layers():

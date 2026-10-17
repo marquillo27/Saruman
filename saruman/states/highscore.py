@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from saruman.config import COL_GOLD, COL_WHITE, INTERNAL_H, INTERNAL_W
+from saruman.config import COL_GOLD, COL_WHITE, UI_H, UI_W
 from saruman.core.audio import get_audio
 from saruman.core.state import State
 from saruman.save import highscores
@@ -29,7 +29,7 @@ class HighScoreState(State):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill((5, 5, 15))
-        cx = INTERNAL_W // 2
+        cx = UI_W // 2
 
         title = get_font(12, bold=True).render("HIGH SCORES", True, COL_GOLD)
         surface.blit(title, title.get_rect(centerx=cx, top=10))
@@ -48,4 +48,4 @@ class HighScoreState(State):
                 y += 13
 
         hint = get_font(6).render("Press any key to return", True, (70, 80, 110))
-        surface.blit(hint, hint.get_rect(centerx=cx, bottom=INTERNAL_H - 5))
+        surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 5))

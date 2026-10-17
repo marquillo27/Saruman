@@ -8,7 +8,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
 import pytest
 
-from saruman.config import INTERNAL_H, INTERNAL_W
+from saruman.config import UI_H, UI_W
 from saruman.core.state import State, StateStack
 from saruman.states.pause import PauseState
 
@@ -135,5 +135,5 @@ def test_non_keydown_ignored(game, paused):
 # ---------------------------------------------------------------------------
 
 def test_draw_does_not_crash(paused):
-    surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    surf = pygame.Surface((UI_W, UI_H))
     paused.draw(surf)

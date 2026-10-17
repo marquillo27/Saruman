@@ -4,7 +4,7 @@ from typing import Callable
 
 import pygame
 
-from saruman.config import INTERNAL_H, INTERNAL_W
+from saruman.config import UI_H, UI_W
 from saruman.core.state import State
 from saruman.ui.theme import get_font
 
@@ -36,7 +36,7 @@ class WorldCardState(State):
         self._sub_surf   = get_font(9,  bold=True).render(sub,   True, (235, 235, 245))
         self._title_surf = get_font(16, bold=True).render(title, True, accent)
         self._rule_col   = accent
-        self._overlay    = pygame.Surface((INTERNAL_W, INTERNAL_H))
+        self._overlay    = pygame.Surface((UI_W, UI_H))
         self._overlay.fill((0, 0, 0))
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -52,7 +52,7 @@ class WorldCardState(State):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(self._bg)
-        cx, cy = INTERNAL_W // 2, INTERNAL_H // 2
+        cx, cy = UI_W // 2, UI_H // 2
 
         surface.blit(self._sub_surf,   self._sub_surf.get_rect(centerx=cx, bottom=cy - 8))
         surface.blit(self._title_surf, self._title_surf.get_rect(centerx=cx, top=cy - 2))

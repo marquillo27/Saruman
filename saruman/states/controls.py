@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from saruman.config import COL_GOLD, COL_WHITE, INTERNAL_H, INTERNAL_W
+from saruman.config import COL_GOLD, COL_WHITE, UI_H, UI_W
 from saruman.core.state import State
 from saruman.ui.theme import get_font
 
@@ -48,7 +48,7 @@ class ControlsState(State):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(_COL_BG)
-        cx = INTERNAL_W // 2
+        cx = UI_W // 2
 
         title = get_font(12, bold=True).render("CONTROLS", True, COL_GOLD)
         surface.blit(title, title.get_rect(centerx=cx, top=8))
@@ -79,4 +79,4 @@ class ControlsState(State):
             y += 6   # gap between sections
 
         hint = get_font(6).render("Press any key to go back", True, (70, 80, 110))
-        surface.blit(hint, hint.get_rect(centerx=cx, bottom=INTERNAL_H - 5))
+        surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 5))

@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pygame
 import pytest
 
-from saruman.config import INTERNAL_H, INTERNAL_W
+from saruman.config import UI_H, UI_W
 from saruman.core.state import StateStack
 from saruman.states.menu import MenuState, _ITEMS
 
@@ -148,5 +148,5 @@ def test_controls_pushes_state(game, menu):
 # ---------------------------------------------------------------------------
 
 def test_draw_does_not_crash(menu):
-    surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    surf = pygame.Surface((UI_W, UI_H))
     menu.draw(surf)

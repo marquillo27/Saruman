@@ -7,7 +7,7 @@ import pygame
 
 from saruman.config import (
     COL_GOLD, COL_SKY_BOT, COL_SKY_TOP, COL_WHITE,
-    INTERNAL_H, INTERNAL_W,
+    UI_H, UI_W,
 )
 from saruman.core.audio import get_audio
 from saruman.core.state import State
@@ -89,7 +89,7 @@ class MenuState(State):
         sub    = get_font(7).render("Aldric the Grey  vs  The Pale Hand", True, (110, 120, 155))
         byline = get_font(6).render("Created by Marquillo", True, (80, 90, 120))
 
-        cx = INTERNAL_W // 2
+        cx = UI_W // 2
         surface.blit(t1, t1.get_rect(centerx=cx, top=22))
         surface.blit(t2, t2.get_rect(centerx=cx, top=22 + t1.get_height() + 1))
         surface.blit(sub,    sub.get_rect(centerx=cx, top=60))
@@ -97,7 +97,7 @@ class MenuState(State):
 
     def _draw_menu(self, surface: pygame.Surface) -> None:
         font = get_font(8, bold=True)
-        cx   = INTERNAL_W // 2
+        cx   = UI_W // 2
         y0   = 90
 
         for i, label in enumerate(_ITEMS):
@@ -110,7 +110,7 @@ class MenuState(State):
                 surface.blit(arrow, (r.left - 12, r.top))
 
         hint = get_font(6).render("Arrows/WASD   Space/Z   Enter", True, (70, 80, 110))
-        surface.blit(hint, hint.get_rect(centerx=cx, bottom=INTERNAL_H - 4))
+        surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 4))
 
     def _draw_stars(self, surface: pygame.Surface) -> None:
         for x, y, phase in self._stars:
@@ -119,7 +119,7 @@ class MenuState(State):
 
     def _draw_mountains(self, surface: pygame.Surface) -> None:
         period = 55
-        count  = INTERNAL_W // period + 3
+        count  = UI_W // period + 3
         offset = 0
         for i in range(-1, count):
             bx     = i * period - offset
@@ -132,19 +132,19 @@ class MenuState(State):
 
     @staticmethod
     def _make_sky() -> pygame.Surface:
-        surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
-        for y in range(INTERNAL_H):
-            t = y / INTERNAL_H
+        surf = pygame.Surface((UI_W, UI_H))
+        for y in range(UI_H):
+            t = y / UI_H
             r = int(COL_SKY_TOP[0] + (COL_SKY_BOT[0] - COL_SKY_TOP[0]) * t)
             g = int(COL_SKY_TOP[1] + (COL_SKY_BOT[1] - COL_SKY_TOP[1]) * t)
             b = int(COL_SKY_TOP[2] + (COL_SKY_BOT[2] - COL_SKY_TOP[2]) * t)
-            pygame.draw.line(surf, (r, g, b), (0, y), (INTERNAL_W, y))
+            pygame.draw.line(surf, (r, g, b), (0, y), (UI_W, y))
         return surf
 
     @staticmethod
     def _make_stars() -> list[tuple[int, int, float]]:
         rng = random.Random(42)
         return [
-            (rng.randint(0, INTERNAL_W - 1), rng.randint(2, INTERNAL_H // 2 - 10), rng.random() * math.tau)
+            (rng.randint(0, UI_W - 1), rng.randint(2, UI_H // 2 - 10), rng.random() * math.tau)
             for _ in range(60)
         ]

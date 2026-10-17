@@ -404,6 +404,7 @@ class World:
                 self._vaporize_enemy(enemy)
                 get_audio().play_sfx("coin.wav")
                 continue
+            enemy.on_player_contact()
             if self._player.vel_y > 0 and pr.centery < enemy.rect.centery:
                 if enemy.can_be_stomped:
                     killed = enemy.on_stomped()

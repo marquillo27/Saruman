@@ -1,9 +1,16 @@
 TILE_SIZE = 16
-SCALE = 3
-INTERNAL_W = 320
-INTERNAL_H = 180
+# The world renders at INTERNAL_W x INTERNAL_H; menus, HUD and other text
+# render on a separate UI canvas at UI_W x UI_H so the pixel font stays crisp.
+# Both are scaled by whole numbers to the same window.
+SCALE = 2
+INTERNAL_W = 480
+INTERNAL_H = 270
+UI_SCALE = 3
+UI_W = 320
+UI_H = 180
 WINDOW_W = INTERNAL_W * SCALE   # 960
 WINDOW_H = INTERNAL_H * SCALE   # 540
+assert UI_W * UI_SCALE == WINDOW_W and UI_H * UI_SCALE == WINDOW_H
 FPS = 60
 
 GRAVITY = 0.45

@@ -8,7 +8,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
 import pytest
 
-from saruman.config import INTERNAL_H, INTERNAL_W
+from saruman.config import UI_H, UI_W
 from saruman.core.state import StateStack
 from saruman.states.credits import CreditsState, _LINES, _SCROLL_SPEED, _TOTAL_FRAMES
 
@@ -51,7 +51,7 @@ def test_frame_starts_zero(credits_state):
 
 
 def test_scroll_starts_at_internal_h(credits_state):
-    assert credits_state._scroll == float(INTERNAL_H)
+    assert credits_state._scroll == float(UI_H)
 
 
 def test_score_stored(credits_state):
@@ -214,9 +214,9 @@ def test_advance_passes_score(game):
 # draw() — no crash at various positions
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("scroll", [INTERNAL_H, 0.0, -50.0, -500.0])
+@pytest.mark.parametrize("scroll", [UI_H, 0.0, -50.0, -500.0])
 def test_draw_does_not_crash(credits_state, scroll):
-    surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    surf = pygame.Surface((UI_W, UI_H))
     credits_state._scroll = scroll
     credits_state.draw(surf)
 
@@ -224,7 +224,7 @@ def test_draw_does_not_crash(credits_state, scroll):
 def test_hint_visible_at_frame_zero(credits_state):
     """Hint surface is rendered when frame < _TOTAL_FRAMES - 60."""
     credits_state._frame = 0
-    surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    surf = pygame.Surface((UI_W, UI_H))
     credits_state.draw(surf)   # just checking no exception
 
 

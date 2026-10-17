@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from saruman.config import COL_GOLD, COL_WHITE, INTERNAL_H, INTERNAL_W
+from saruman.config import COL_GOLD, COL_WHITE, UI_H, UI_W
 from saruman.core.audio import get_audio
 from saruman.core.state import State
 from saruman.ui.theme import get_font
@@ -40,7 +40,7 @@ class CreditsState(State):
         self._score  = score
         self._frame  = 0
         self._done   = False
-        self._scroll = float(INTERNAL_H)
+        self._scroll = float(UI_H)
 
         # Pre-render each line as (surface | None, line_height)
         self._rendered: list[tuple[pygame.Surface | None, int]] = []
@@ -77,17 +77,17 @@ class CreditsState(State):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill((5, 5, 15))
-        cx = INTERNAL_W // 2
+        cx = UI_W // 2
         y  = int(self._scroll)
         for surf, h in self._rendered:
-            if surf is not None and -h < y < INTERNAL_H:
+            if surf is not None and -h < y < UI_H:
                 surface.blit(surf, surf.get_rect(centerx=cx, top=y))
             y += h
 
         if self._frame < _TOTAL_FRAMES - 60:
             surface.blit(
                 self._hint,
-                self._hint.get_rect(centerx=cx, bottom=INTERNAL_H - 4),
+                self._hint.get_rect(centerx=cx, bottom=UI_H - 4),
             )
 
     def _advance(self) -> None:

@@ -8,7 +8,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
 import pytest
 
-from saruman.config import INTERNAL_H, INTERNAL_W, MAX_LIVES, PLAYER_LIVES, TILE_SIZE
+from saruman.config import UI_H, UI_W, MAX_LIVES, PLAYER_LIVES, TILE_SIZE
 from saruman.entities.item import Heart
 from saruman.ui.hud import HUD
 from saruman.world.world import World
@@ -104,5 +104,5 @@ def test_heart_does_not_exceed_max_by_one():
 
 @pytest.mark.parametrize("lives", [0, 1, 3, 5, 7, 99])
 def test_hud_draws_any_life_count(lives):
-    surf = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    surf = pygame.Surface((UI_W, UI_H))
     HUD().draw(surf, lives, 1234, 0)   # must not raise

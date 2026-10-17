@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from saruman.config import COL_GOLD, COL_WHITE, INTERNAL_H, INTERNAL_W
+from saruman.config import COL_GOLD, COL_WHITE, UI_H, UI_W
 from saruman.core.state import State
 from saruman.ui.theme import get_font
 
@@ -18,7 +18,7 @@ class PauseState(State):
     def __init__(self, game) -> None:
         self._game    = game
         self._cursor  = _RESUME     # always open on RESUME: a stray confirm is harmless
-        self._overlay = pygame.Surface((INTERNAL_W, INTERNAL_H), pygame.SRCALPHA)
+        self._overlay = pygame.Surface((UI_W, UI_H), pygame.SRCALPHA)
         self._overlay.fill((0, 0, 0, 160))
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -49,7 +49,7 @@ class PauseState(State):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.blit(self._overlay, (0, 0))
-        cx = INTERNAL_W // 2
+        cx = UI_W // 2
 
         title = get_font(12, bold=True).render("PAUSED", True, COL_GOLD)
         surface.blit(title, title.get_rect(centerx=cx, top=40))
@@ -66,4 +66,4 @@ class PauseState(State):
                 surface.blit(arrow, (r.left - 12, r.top))
 
         hint = get_font(6).render("Arrows/WASD   Enter   Esc resume", True, (110, 120, 150))
-        surface.blit(hint, hint.get_rect(centerx=cx, bottom=INTERNAL_H - 6))
+        surface.blit(hint, hint.get_rect(centerx=cx, bottom=UI_H - 6))
