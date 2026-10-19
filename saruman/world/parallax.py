@@ -502,7 +502,11 @@ _BIOME_LAYERS: dict[str, list[tuple]] = {
 
 # Painted backgrounds (generated with ComfyUI, see tools/process_backgrounds.py)
 # replace the procedural silhouettes, which look crude in front of them.
-_PAINTED_FACTOR = 0.05
+# Outdoor backdrops are cut by depth into <name>.png (sky) plus transparent
+# <name>_1.png, <name>_2.png ... (farther land to nearer land); each nearer
+# layer scrolls faster.
+_PAINTED_FACTOR  = 0.05
+_PAINTED_FACTORS = (0.03, 0.08, 0.16)
 
 _PAINTED: dict[str, str] = {
     "level_01_greenshire_hills":    "greenwood_valley",
@@ -521,15 +525,24 @@ _PAINTED: dict[str, str] = {
 }
 
 
-def _load_painted(level_name: str) -> pygame.Surface | None:
+def _load_painted(level_name: str) -> list[pygame.Surface] | None:
+    """The painted backdrop's layers, far to near, or None if there is none."""
     name = _PAINTED.get(level_name)
     if not name:
         return None
     path = asset_path("backgrounds", f"{name}.png")
     if not path.exists():
         return None
+    has_display = pygame.display.get_surface() is not None
     surf = pygame.image.load(str(path))
-    return surf.convert() if pygame.display.get_surface() else surf
+    layers = [surf.convert() if has_display else surf]
+    while len(layers) < len(_PAINTED_FACTORS):
+        path = asset_path("backgrounds", f"{name}_{len(layers)}.png")
+        if not path.exists():
+            break
+        surf = pygame.image.load(str(path))
+        layers.append(surf.convert_alpha() if has_display else surf)
+    return layers
 
 
 def make_parallax_layers(level_name: str) -> list[ParallaxLayer]:
@@ -537,4 +550,6 @@ def make_parallax_layers(level_name: str) -> list[ParallaxLayer]:
     painted = _load_painted(level_name)
     if painted is None:
         return [ParallaxLayer(fn(), factor) for fn, factor in entries]
-    return [ParallaxLayer(painted, _PAINTED_FACTOR)]
+    if len(painted) == 1:
+        return [ParallaxLayer(painted[0], _PAINTED_FACTOR)]
+    return [ParallaxLayer(surf, factor) for surf, factor in zip(painted, _PAINTED_FACTORS)]

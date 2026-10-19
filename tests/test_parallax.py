@@ -43,17 +43,41 @@ def _pygame():
 @pytest.mark.parametrize("level", ALL_LEVELS)
 def test_known_level_returns_layers(level):
     layers = make_parallax_layers(level)
-    assert 1 <= len(layers) <= 2
+    assert 1 <= len(layers) <= 3
 
 
 @pytest.mark.parametrize("level", ALL_LEVELS)
-def test_painted_background_is_single_seamless_layer(level):
+def test_painted_layers_are_seamless_full_view_strips(level):
     from saruman.config import INTERNAL_H, INTERNAL_W
     from saruman.world.parallax import _load_painted
     if _load_painted(level) is None:
         pytest.skip("no painted backdrop for this level yet")
-    (layer,) = make_parallax_layers(level)
-    assert layer._surf.get_size() == (INTERNAL_W * 2, INTERNAL_H)
+    for layer in make_parallax_layers(level):
+        assert layer._surf.get_size() == (INTERNAL_W * 2, INTERNAL_H)
+
+
+@pytest.mark.parametrize("level", ALL_LEVELS)
+def test_painted_layers_scroll_faster_the_nearer_they_are(level):
+    layers = make_parallax_layers(level)
+    factors = [l._factor for l in layers]
+    assert factors == sorted(factors) and len(set(factors)) == len(factors)
+
+
+@pytest.mark.parametrize("level", ["level_01_greenshire_hills", "level_11_ashfall_wastes"])
+def test_outdoor_backdrop_is_cut_into_depth_layers(level):
+    layers = make_parallax_layers(level)
+    assert len(layers) == 3
+    # The sky covers the whole view; the land layers are see-through at the top.
+    assert layers[0]._surf.get_at((0, 0)).a == 255
+    for layer in layers[1:]:
+        assert layer._surf.get_at((0, 0)).a == 0
+        assert layer._surf.get_at((0, layer._surf.get_height() - 1)).a == 255
+
+
+def test_enclosed_backdrop_stays_single_layer():
+    from saruman.world.parallax import _PAINTED_FACTOR
+    (layer,) = make_parallax_layers("level_03_glass_caverns")
+    assert layer._factor == _PAINTED_FACTOR
 
 
 def test_painted_backdrop_falls_back_to_silhouettes(monkeypatch):
