@@ -506,7 +506,7 @@ _BIOME_LAYERS: dict[str, list[tuple]] = {
 # <name>_1.png, <name>_2.png ... (farther land to nearer land); each nearer
 # layer scrolls faster.
 _PAINTED_FACTOR  = 0.05
-_PAINTED_FACTORS = (0.03, 0.08, 0.16)
+_PAINTED_FACTORS = (0.04, 0.15, 0.35)
 
 _PAINTED: dict[str, str] = {
     "level_01_greenshire_hills":    "greenwood_valley",
@@ -526,10 +526,13 @@ _PAINTED: dict[str, str] = {
 
 
 def _load_painted(level_name: str) -> list[pygame.Surface] | None:
-    """The painted backdrop's layers, far to near, or None if there is none."""
+    """The level's painted backdrop layers, far to near, or None if there is none."""
     name = _PAINTED.get(level_name)
-    if not name:
-        return None
+    return load_backdrop(name) if name else None
+
+
+def load_backdrop(name: str) -> list[pygame.Surface] | None:
+    """A painted backdrop's layers by backdrop name, far to near, or None if missing."""
     path = asset_path("backgrounds", f"{name}.png")
     if not path.exists():
         return None

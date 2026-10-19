@@ -150,3 +150,27 @@ def test_controls_pushes_state(game, menu):
 def test_draw_does_not_crash(menu):
     surf = pygame.Surface((UI_W, UI_H))
     menu.draw(surf)
+
+
+def test_render_paints_title_backdrop_on_world_canvas(menu):
+    from saruman.config import INTERNAL_H, INTERNAL_W
+    world = pygame.Surface((INTERNAL_W, INTERNAL_H))
+    world.fill((255, 0, 255))
+    ui = pygame.Surface((UI_W, UI_H), pygame.SRCALPHA)
+    menu.render(world, ui)
+    assert world.get_at((0, 0))[:3] != (255, 0, 255)
+    assert len(menu._layers) >= 2           # painted title backdrop, cut into layers
+
+
+def test_view_follows_hero_walk_in_then_settles(menu):
+    from saruman.config import INTERNAL_H, INTERNAL_W
+    from saruman.states.menu import _WALK_TIME
+    shots = []
+    for tick in (0.0, _WALK_TIME, _WALK_TIME + 5.0):
+        menu._tick = tick
+        world = pygame.Surface((INTERNAL_W, INTERNAL_H))
+        menu.draw_backdrop(world)
+        shots.append(pygame.image.tobytes(world, "RGB"))
+    assert shots[0] != shots[1]
+    # Once he has arrived only his idle animation moves, never the landscape.
+    assert menu._walk_progress() == 1.0

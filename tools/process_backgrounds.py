@@ -50,6 +50,7 @@ SOURCES: dict[str, tuple[str, tuple[float, ...]]] = {
     "bridge":              ("bridge_2370.png",        (0.15, 0.6)),
     "catacombs":           ("catacombs_2380.png",     ()),
     "emberfall":           ("emberfall_2390.png",     (0.15, 0.6)),
+    "title":               ("title_4101.png",         (0.3, 0.75)),   # main menu
 }
 
 
@@ -59,6 +60,12 @@ def _crop_view(img: Image.Image, resample: int) -> Image.Image:
     crop_h = round(w * VIEW_H / VIEW_W)
     top    = max(0, h - crop_h)
     return img.crop((0, top, w, top + crop_h)).resize((VIEW_W, VIEW_H), resample)
+
+
+# Backdrops that are not pushed back behind a playfield get a lighter touch.
+LOOK: dict[str, dict[str, float]] = {
+    "title": {"dim": 0.85, "saturation": 0.8, "haze": 0.12},
+}
 
 
 def process(src: Path, colors: int = 32, dim: float = 0.62, saturation: float = 0.6,
@@ -168,7 +175,7 @@ def main() -> None:
         if not src.exists():
             print(f"skip {name}: {src} missing")
             continue
-        flat = process(src)
+        flat = process(src, **LOOK.get(name, {}))
         for old in OUT_DIR.glob(f"{name}_[0-9].png"):
             old.unlink()
         depth = src.with_name(f"{src.stem}_depth.png")
